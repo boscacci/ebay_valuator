@@ -15,8 +15,11 @@ class Axe:
         self.id = axe_num
         self.__body = read_axe_jsons("%s" % (axe_num))
         
-        # PRICE - SCALAR DEPENDENT VAR (DV)
-        self.price_usd = float(self.__body['listing']['sellingStatus'][0]['convertedCurrentPrice'][0]['__value__'])
+        # ULTIMATE PRICE - SCALAR DEPENDENT VAR
+        self.price = self.__body['specs']['ConvertedCurrentPrice']['Value']
+
+        # INITIAL PRICE - SCALAR
+        self.initial_price = float(self.__body['listing']['sellingStatus'][0]['convertedCurrentPrice'][0]['__value__'])
         
         # SHIPPING COST - SCALAR INDEPENDENT VARIABLE ("IV")
         self.price_shipping = self.__body['listing']['shippingInfo'][0].get('shippingServiceCost')
@@ -264,10 +267,10 @@ class Axe:
                     self.country_manufacture = 'KOREA'
                 if self.country_manufacture == 'UNITED STATES':
                     self.country_manufacture = 'USA'
-                if self.country_manufacture not in ['USA', 'JAPAN',\
-                                                    'MEXICO', 'KOREA',\
-                                                    'CHINA','INDONESIA']:
-                    self.country_manufacture = 'OTHER'
+                # if self.country_manufacture not in ['USA', 'JAPAN',\
+                #                                     'MEXICO', 'KOREA',\
+                #                                     'CHINA','INDONESIA']:
+                #     self.country_manufacture = 'OTHER'
             
             
             # BODY TYPE - 1-HOT CATEGORICAL
