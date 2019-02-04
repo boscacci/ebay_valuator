@@ -1,19 +1,19 @@
 import json, re
 from datetime import datetime
 
-def read_axe_jsons(axe_num):
-    with open('axe_listings/%s' % (axe_num), "r") as read_file:
+def read_axe_jsons(axe_num, list_dir, spec_dir):
+    with open('%s/%s' % (list_dir,axe_num), "r") as read_file:
         listing = json.load(read_file)
-    with open('axe_specs/%s' % (axe_num), "r") as read_file:
+    with open('%s/%s' % (spec_dir, axe_num), "r") as read_file:
         specs = json.load(read_file)
     return {'listing': listing, 'specs': specs}
 
 class Axe:
-    def __init__(self, axe_num=None):
+    def __init__(self, list_dir, spec_dir, axe_num=None):
         
         # UID
         self.id = axe_num
-        self.__body = read_axe_jsons("%s" % (axe_num))
+        self.__body = read_axe_jsons("%s" % (axe_num), list_dir, spec_dir )
         
         # ULTIMATE PRICE - SCALAR DEPENDENT VAR
         self.price = self.__body['specs']['ConvertedCurrentPrice']['Value']
