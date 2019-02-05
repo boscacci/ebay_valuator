@@ -4,7 +4,7 @@
 
 The idea was initially to train a model to estimate what the final auction price of your guitar would be - before you post it. 
 
-Estimates would be based on the item sale settings and item characteristics: Auction duration, return policy, and other technical features, combined with the features you enter about the guitar (body material, country of manufacture, brand, color, right-or-left handed..etc), as well as the text you the seller type into the title, the description, and etc.
+Estimates would be based on the item sale settings and item characteristics: Auction duration, return policy, and other technical features, combined with the features you enter about the guitar (body material, country of manufacture, brand, color, right-or-left handed..etc), as well as the text you enter into the title, description, and other fields.
 
 So I pulled a lot of real eBay data: about 15k closed used guitar auctions that ended in sales (caveat). I parsed and visualized the data, organized some seemingly relevant features, and threw all at a lasso regression model. Predictive performance on a holdout test set wasn't very good; RMSE was only about 18-25% better than just guessing the mean.
 
