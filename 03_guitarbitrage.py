@@ -2,6 +2,8 @@ stars = '**************'
 print(stars)
 print('Importing modules')
 
+from key import API_KEY
+
 import requests, json, os, pickle, yagmail, sys
 from datetime import datetime, timedelta
 import pandas as pd
@@ -25,7 +27,7 @@ sys.path.insert(0, 'pickles')
 
 # Trawl for Prospective Deals
 
-API_KEY = 'RobertBo-cinemaro-PRD-171ca9e35-af8bdcbb' # Enter your API Key/"App ID" Here. Mine was 40 chars long.
+API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
 
 FIND_ADVANCED = "findItemsAdvanced" # This is the eBay API endpoint service we'll be querying.
 ELEC_GUITARS = '33034'

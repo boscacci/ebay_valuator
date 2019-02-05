@@ -1,6 +1,8 @@
 import json, os, requests
 
-API_KEY = 'RobertBo-cinemaro-PRD-171ca9e35-af8bdcbb' # Enter your API Key/"App ID" Here. Mine was 40 chars long.
+from key import API_KEY
+
+API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
 
 # FILM_CAMS = '15230'
 ELEC_GUITARS = '33034' # Category code for electric guitars on eBay.
