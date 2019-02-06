@@ -65,7 +65,7 @@ print('Organizing Data')
 
 orig_prices = pd.Series([axe.price for axe in axes], name = 'prices')
 
-bxcx_lam = .4
+bxcx_lam = .3
 prices = pd.Series(boxcox([axe.price for axe in axes], lmbda=bxcx_lam), name = 'prices')
 
 auction_duration    = pd.Series([axe.duration for axe in axes], name = 'auction_duration')

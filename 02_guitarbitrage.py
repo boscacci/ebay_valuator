@@ -315,7 +315,7 @@ print('Generate estimates:')
 
 y_preds = lasso_model.predict(X_ready)
 
-bxcx_lam = .4
+bxcx_lam = .3
 y_preds_inv = inv_boxcox(y_preds, bxcx_lam)
 
 predicted_df = pd.concat([pd.Series(y_preds_inv), pd.Series([guitar.initial_price + guitar.price_shipping for guitar in guitars]),
