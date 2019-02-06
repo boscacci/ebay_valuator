@@ -37,7 +37,7 @@ AUCTIONWITHBIN = "AuctionWithBIN"
 
 
 
-days_ahead = 2
+days_ahead = 1
 
 
 
@@ -327,7 +327,6 @@ predicted_df = pd.concat([pd.Series(y_preds_inv), pd.Series([guitar.initial_pric
 
 predicted_df.columns = ['Estimate', 'Price', 'Ratio','Title','Link', 'Pic']
 
-
 highest_value = predicted_df.sort_values('Estimate', ascending=False)
 hv_10 = highest_value.iloc[:10,:]
 
@@ -358,5 +357,5 @@ receiver = "cinemarob1@gmail.com"
 yag = yagmail.SMTP("gu1tarb1trag3@gmail.com")
 yag.send(
     to=receiver,
-    subject=f"GuitArbitrage - Auctions Ending Within 2 Days",
+    subject=f"GuitArbitrage - Auctions Ending Within {days_ahead} Days",
     contents=email)

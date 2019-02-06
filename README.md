@@ -15,3 +15,5 @@ What I then realized was that mine was a pretty conservative estimator, price-wi
 So now it's trained to trawl eBay for what it thinks are undervalued guitars, put together a little email with its findings, and send them wherever you like.
 
 Grab an eBay API key and run the .py modules in order from 01 to 03 to generate your very own inbox clutter.
+
+![](/_media/guitar_projector_small.gif)
