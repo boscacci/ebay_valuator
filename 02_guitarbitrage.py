@@ -1,3 +1,5 @@
+address = input("Enter recipient email address: ")
+
 stars = '**************'
 print(stars)
 print('Importing modules')
@@ -36,9 +38,7 @@ AUCTION = "Auction"
 AUCTIONWITHBIN = "AuctionWithBIN"
 
 
-
-days_ahead = 1
-
+days_ahead = int(input("Enter recipient email address: "))
 
 
 ct = datetime.utcnow()
@@ -368,7 +368,6 @@ for i in range(10):
     email += f"\nBids: {m_u['Bids'].values[i]}\n\n"
     email += "*******************************\n"
 
-address = input("Enter recipient email address: ")
 yag = yagmail.SMTP("gu1tarb1trag3@gmail.com")
 yag.send(
     to=address,
