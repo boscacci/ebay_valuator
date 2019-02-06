@@ -1,4 +1,5 @@
 address = input("Enter recipient email address: ")
+days_ahead = int(input("Enter how many days ahead you want to scrape for: "))
 
 stars = '**************'
 print(stars)
@@ -36,9 +37,6 @@ ELEC_GUITARS = '33034'
 USED = '3000'
 AUCTION = "Auction"
 AUCTIONWITHBIN = "AuctionWithBIN"
-
-
-days_ahead = int(input("Enter recipient email address: "))
 
 
 ct = datetime.utcnow()
@@ -185,6 +183,7 @@ print(stars)
 print('More organizing data:')
 
 # Properties
+title_lengths       = pd.Series([guitar.len_title for guitar in guitars], name = 'title_lengths')
 auction_duration    = pd.Series(np.full(len(guitars),7*24), name = 'auction_duration')
 shipping_charged    = pd.Series(np.full(len(guitars),0), name = 'shipping_charged')          
 seller_country_US   = pd.Series([1 for i in range(len(guitars))], name = 'seller_country_US')
@@ -211,7 +210,10 @@ string_config       = pd.cut(pd.Series([guitar.string_config for guitar in guita
 country_manufacture = pd.Series([guitar.country_manufacture for guitar in guitars], name = "country_manufacture")
 model_year = pd.cut(pd.Series([guitar.year for guitar in guitars], name = "model_year"), [1700,1975,1990,1995,2000,2005,2007,2010,2011,2012,2013,2015])
 
-X_dummies = pd.concat([brand, color, country_manufacture, right_left_handed, best_offer_enabled, shipping_charged, returns, autopay, seller_country_US, ship_handling_time_2, listing_type_FixedPrice, ship_expedite, ship_type_Free, num_pics, auction_duration, start_hour, end_hour, start_weekday_6, end_weekday_6, seller_positive_percent, model_year, body_type, string_config],
+X_dummies = pd.concat([brand, title_lengths, color, country_manufacture, right_left_handed, best_offer_enabled, 
+    shipping_charged, returns, autopay, seller_country_US, ship_handling_time_2, listing_type_FixedPrice, 
+    ship_expedite, ship_type_Free, num_pics, auction_duration, start_hour, end_hour, start_weekday_6, 
+    end_weekday_6, seller_positive_percent, model_year, body_type, string_config],
               axis = 1)
 
 X = pd.get_dummies(X_dummies, drop_first=True)
@@ -276,7 +278,6 @@ def process_doc(doc):
             stopwords_removed += stemmer.stem(tokens[i]) + ' '
     return stopwords_removed
 
-
 print(stars)
 print('Analyzing text of new prospects:')
 
@@ -300,7 +301,6 @@ tfidf = vectorizer.transform(processed_text)
 tfidf_df = pd.DataFrame(tfidf.toarray(), columns=vectorizer.get_feature_names())
 
 X_ready = pd.concat([X_nontext, tfidf_df], axis=1)
-
 
 print(stars)
 print('Import Trained Regressor:')

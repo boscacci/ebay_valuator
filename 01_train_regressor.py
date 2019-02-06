@@ -1,3 +1,7 @@
+stars = '**************'
+print(stars)
+print('Importing modules')
+
 import os, operator, itertools, pickle, sys, string, nltk
 import numpy as np
 import pandas as pd
@@ -34,6 +38,8 @@ sys.path.insert(0, 'pickles')
 
 from Axe_Object import Axe
 
+print(stars)
+print('Importing JSON Guitars')
 
 file_names = [name for name in os.listdir('data/axe_specs/') if not name.startswith('.')] # Ignores hidden files on mac
 
@@ -65,6 +71,7 @@ plt.ylabel('Frequency')
 plt.xlabel('Guitar Price in USD')
 # plt.show()
 
+title_lengths       = pd.Series([axe.len_title for axe in axes], name = 'title_lengths')
 auction_duration    = pd.Series([axe.duration for axe in axes], name = 'auction_duration')
 shipping_charged    = pd.Series([axe.price_shipping for axe in axes], name = 'shipping_charged')
 seller_country      = pd.Series([axe.country_seller for axe in axes], name = 'seller_country')
@@ -97,9 +104,7 @@ seller_positive_percent = pd.cut(pd.Series([axe.seller_positive_percent for axe 
 
 model_year = pd.cut(pd.Series([axe.year for axe in axes], name = "model_year"), [1700,1975,1990,1995,2000,2005,2007,2010,2011,2012,2013,2015])
 
-
 # ## Text as a Regression Feature
-
 # http://www-stat.wharton.upenn.edu/~stine/research/regressor.pdf
 def assemble_guitar_document(axe):
     document = axe.title + ' '
@@ -134,17 +139,23 @@ def process_doc(doc):
             stopwords_removed += stemmer.stem(tokens[i]) + ' '
     return stopwords_removed
 
+print(stars)
+print('Processing Text Corpus...')
+
 processed_text = pd.Series(list(map(process_doc, raw_corpus)), name = 'text')
 
 
 # ## Assemble the Feature Set
-y_X_dummies = pd.concat([prices, brand, color, country_manufacture, right_left_handed, best_offer_enabled, shipping_charged, 
+y_X_dummies = pd.concat([prices, title_lengths, brand, color, country_manufacture, right_left_handed, best_offer_enabled, shipping_charged, 
                returns, returns_time, autopay, seller_country, ship_handling_time, listing_type, ship_expedite,
                ship_type, num_pics, auction_duration, start_hour, end_hour, start_weekday, end_weekday, 
                seller_positive_percent, model_year, body_type, string_config],
               axis = 1)
 
 y_X = pd.get_dummies(y_X_dummies, drop_first=True)
+
+print(stars)
+print('Pickling columns...')
 
 filename = 'pickles/bonus_columns'
 outfile = open(filename, 'wb')
@@ -153,9 +164,15 @@ outfile.close()
 
 # ### SPLIT
 
-y_X = pd.concat([y_X, processed_text], axis=1)
-X_train, X_test, y_train, y_test = train_test_split(y_X.iloc[:,1:], y_X.iloc[:,0], test_size=.15)#, random_state=42)
+print(stars)
+print('Splitting...')
 
+y_X = pd.concat([y_X, processed_text], axis=1)
+X_train, X_test, y_train, y_test = train_test_split(y_X.iloc[:,1:], y_X.iloc[:,0], test_size=.20, random_state=42)
+
+
+print(stars)
+print('Scaling...')
 
 # ### Scale It 
 scaler = StandardScaler()
@@ -173,6 +190,9 @@ vectorizer = TfidfVectorizer(norm=None, ngram_range=(2,3), strip_accents='ascii'
                              max_features=300)
 
 vectorizer.fit(X_train['text'])
+
+print(stars)
+print('Vectorizing Text...')
 
 outfile = open('pickles/saved_vectorizer','wb')
 pickle.dump(vectorizer,outfile)
@@ -219,6 +239,9 @@ price_mean_vector = inv_boxcox([price_mean for i in range(len(y_test))],bxcx_lam
 baseline_error = np.sqrt(mean_squared_error(inv_boxcox(y_test, bxcx_lam), price_mean_vector))
 baseline_error
 
+print(stars)
+print('Training a Lasso Regressor...')
+
 # ### Lasso Regression
 lasso_model = LassoCV(cv=3).fit(X_train_ready, y_train)
 
@@ -255,6 +278,9 @@ coef = pd.DataFrame(data = lasso_model.coef_, index=X_train_ready.columns)
 model_coef = coef.sort_values(by=0).T
 model_coef.plot(kind='bar', title='Lasso Coefficients', legend=False, figsize=(16,5))
 plt.show()
+
+print(stars)
+print('Writing out Lasso Coefs...')
 
 t_mod = model_coef.T
 lasso_feats = t_mod[abs(t_mod) > 0].dropna()
@@ -342,7 +368,13 @@ tpot = make_pipeline(SelectPercentile(score_func=f_regression, percentile=85),
                                                         n_estimators=100)
                                 )
 
+print(stars)
+print('Training TPOT Pipeline...')
+
 tpot.fit(X_train_ready.values.astype('float'), y_train)
+
+print(stars)
+print('Pickling the TPOT...')
 
 filename = 'pickles/tpot'
 outfile = open(filename, 'wb')

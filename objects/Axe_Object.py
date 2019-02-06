@@ -29,6 +29,7 @@ class Axe:
         
         # TITLE - UNSTRUCTURED TEXT DATA FOR NLP ANALYSIS - STUFF WILL BE APPENDED TO THIS LATER
         self.title = self.__body['listing']['title'][0]
+        self.len_title = len(self.__body['listing']['title'][0])
         
         # MARKET COUNTRY (ONE-HOT CATEGORICAL VARIABLE)
         self.market = self.__body['listing']['globalId'][0]
