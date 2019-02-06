@@ -159,12 +159,14 @@ print(stars)
 print('De-Serializing what we got from eBay:')
 
 from Axe_Object_memory import Axe
+
 guitars = []
 for prospect in prospects:
     if prospect.get('specs'):
         try:
             this_axe = Axe(prospect['listing'],prospect['specs'])
-            if "LOT OF" not in this_axe.title.upper() and this_axe.price > 90 and this_axe.price < 800:
+            if "LOT OF" not in this_axe.title.upper() and this_axe.price > 90 and this_axe.price < 800\
+        and "TREMOLO" not in this_axe.title.upper():
                 if this_axe.string_config and this_axe.string_config < 5:
                     continue
                 if this_axe.year and this_axe.year > 2019:
@@ -301,31 +303,38 @@ X_ready = pd.concat([X_nontext, tfidf_df], axis=1)
 
 
 print(stars)
-print('Import Trained Lasso Regressor:')
+print('Import Trained Regressor:')
 
 
-infile = open('pickles/lasso_model','rb')
-lasso_model = pickle.load(infile)
+infile = open('pickles/tpot','rb')
+tpot = pickle.load(infile)
 infile.close()
 
 
 print(stars)
 print('Generate estimates:')
 
-
-y_preds = lasso_model.predict(X_ready)
+y_preds = tpot.predict(X_ready)
 
 bxcx_lam = .3
 y_preds_inv = inv_boxcox(y_preds, bxcx_lam)
+
+bids = []
+for guitar in guitars:
+    if guitar._Axe__body['listing']['sellingStatus'][0].get('bidCount'):
+        bids.append(guitar._Axe__body['listing']['sellingStatus'][0]['bidCount'][0])
+    else:
+        bids.append('0')
 
 predicted_df = pd.concat([pd.Series(y_preds_inv), pd.Series([guitar.initial_price + guitar.price_shipping for guitar in guitars]),
                           pd.Series(y_preds_inv) / pd.Series([guitar.initial_price for guitar in guitars]),
                           pd.Series([guitar.title for guitar in guitars]), 
                           pd.Series([guitar.url for guitar in guitars]), 
-                         pd.Series([guitar.pic for guitar in guitars])],
+                         pd.Series([guitar.pic for guitar in guitars]),
+                         pd.Series(bids)],
                          axis=1)
 
-predicted_df.columns = ['Estimate', 'Price', 'Ratio','Title','Link', 'Pic']
+predicted_df.columns = ['Estimate', 'Price', 'Ratio','Title','Link', 'Pic', 'Bids']
 
 highest_value = predicted_df.sort_values('Estimate', ascending=False)
 hv_10 = highest_value.iloc[:10,:]
@@ -336,26 +345,34 @@ m_u = most_underrated.iloc[:10,:]
 print(stars)
 print('Formatting an email:')
 
-email = "<h3>10 Most Underrated:</h3>\n"
+email = '\n<h3>10 Highest Potential Value:</h3>\n'
 email += "*******************************\n"
-for i in range(10):
-    email += f"<a href = {m_u['Link'].values[i]}>"
-    email += f"\n{m_u['Title'].values[i]}\n\n:"
-    email += f"<img src = {m_u['Pic'].values[i]}></img></a>\n"
-    email += f"\nHigh bid: ${m_u['Price'].values[i]}\n\n"
-    email += "*******************************\n"
-email += '\n<h3>10 Highest Potential Value:</h3>\n'
-email += "*******************************\n"
+    
 for i in range(10):
     email += f"<a href = {hv_10['Link'].values[i]}>"
     email += f"\n{hv_10['Title'].values[i]}\n\n"
     email += f"<img src = {hv_10.Pic.values[i]}></img></a>\n"
-    email += f"\nHigh bid: ${hv_10['Price'].values[i]}\n\n"
+    email += f"\nCurrent Price: ${hv_10['Price'].values[i]}"
+    email += f"\nBids: {m_u['Bids'].values[i]}\n\n"
+    email += "*******************************\n"
+    
+email += "<h3>10 Most Underrated:</h3>\n"
+
+email += "*******************************\n"
+
+for i in range(10):
+    email += f"<a href = {m_u['Link'].values[i]}>"
+    email += f"\n{m_u['Title'].values[i]}\n\n:"
+    email += f"<img src = {m_u['Pic'].values[i]}></img></a>\n"
+    email += f"\nCurrent Price: ${m_u['Price'].values[i]}"
+    email += f"\nBids: {m_u['Bids'].values[i]}\n\n"
     email += "*******************************\n"
 
-receiver = "cinemarob1@gmail.com"
+address = input("Enter recipient email address: ")
 yag = yagmail.SMTP("gu1tarb1trag3@gmail.com")
 yag.send(
-    to=receiver,
-    subject=f"GuitArbitrage - Auctions Ending Within {days_ahead} Days",
+    to=address,
+    subject=f"GuitArbitrage - Auctions Ending Within {days_ahead} Day(s)",
     contents=email)
+
+print(f"Summary sent to {address.split('@')[0]}. Happy hunting")
