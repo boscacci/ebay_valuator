@@ -327,29 +327,31 @@ print(f'Lasso model only identifies {round(100 * cnf_matrix[1][1] / (cnf_matrix[
 print(f'However, when lasso guesses above ${price_thresh}, it\'s correct {round((cnf_matrix[1][1] / (cnf_matrix[1][1] + cnf_matrix[0][1]))*100, 2)}% of the time.')
 
 
-# ## Fitting a TPOT Auto-ML Pipeline
-# from tpot import TPOTRegressor
-# pipeline_optimizer = TPOTRegressor(generations=80, population_size=100,
-#                          offspring_size=None, mutation_rate=0.9,
-#                          crossover_rate=0.1,
-#                          scoring='neg_mean_squared_error', cv=5,
-#                          subsample=1.0, n_jobs=8,
-#                          max_time_mins=570, max_eval_time_mins=5,
-#                          random_state=None, config_dict='TPOT sparse',
-#                          warm_start=False,
-#                          memory=None,
-#                          use_dask=False,
-#                          periodic_checkpoint_folder='TPOT_saves',
-#                          early_stop=None,
-#                          verbosity=3,
-#                          disable_update_check=False)
+ ## Fitting a TPOT Auto-ML Pipeline
+from tpot import TPOTRegressor
+pipeline_optimizer = TPOTRegressor(generations=80, population_size=100,
+                          offspring_size=None, mutation_rate=0.9,
+                          crossover_rate=0.1,
+                          scoring='neg_mean_squared_error', cv=5,
+                          subsample=1.0, n_jobs=8,
+                          max_time_mins=840, max_eval_time_mins=7,
+                          random_state=None, config_dict='TPOT sparse',
+                          warm_start=False,
+                          memory=None,
+                          use_dask=False,
+                          periodic_checkpoint_folder='TPOT_saves',
+                          early_stop=None,
+                          verbosity=3,
+                          disable_update_check=False)
 
-# X_train_ready_tpot = X_train_ready.values.astype('float')
-# pipeline_optimizer.fit(X_train_ready_tpot, y_train)
+X_train_ready_tpot = X_train_ready.values.astype('float')
+pipeline_optimizer.fit(X_train_ready_tpot, y_train)
 
 # Export:
 
-# pipeline_optimizer.export('pickles/tpot_guitar_pipeline.py')
+pipeline_optimizer.export('pickles/tpot_guitar_pipeline.py')
+
+input("Press Enter to continue...")
 
 # ### Import TPOT-Selected Model
 # (Copy paste ideal pipeline from tpot_guitar_pipeline.py file)
@@ -436,10 +438,3 @@ plt.show()
 print(f'TPOT model only identifies {round(100 * cnf_matrix_tpot[1][1] / (cnf_matrix_tpot[1][0] + cnf_matrix_tpot[1][1]), 2)}% of the guitars that will sell above ${price_thresh}.')
 
 print(f'However, when TPOT guesses above ${price_thresh}, it\'s correct {round((cnf_matrix_tpot[1][1] / (cnf_matrix_tpot[1][1] + cnf_matrix_tpot[0][1]))*100, 2)}% of the time.')
-
-
-# ****
-
-# V2:
-# * How much white balance a guitar's pictures need, as a feature?
-# * Filter by number of unique bidders
