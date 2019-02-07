@@ -3,6 +3,7 @@ print(stars)
 print('Importing modules')
 
 import os, operator, itertools, pickle, sys, string, nltk
+from copy import copy
 import numpy as np
 import pandas as pd
 # pd.options.display.max_columns = 999
@@ -19,16 +20,15 @@ from nltk import word_tokenize, FreqDist
 from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, FunctionTransformer
 from sklearn.feature_selection import f_regression, SelectPercentile
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, confusion_matrix
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, make_union
 
-from sklearn.linear_model import LassoCV
+from sklearn.linear_model import LassoCV, RidgeCV
 from sklearn.ensemble import RandomForestRegressor
 from tpot.builtins import StackingEstimator
-from xgboost import XGBRegressor
 
 np.random.seed(0)
 
@@ -328,52 +328,48 @@ print(f'However, when lasso guesses above ${price_thresh}, it\'s correct {round(
 
 
  ## Fitting a TPOT Auto-ML Pipeline
-from tpot import TPOTRegressor
-pipeline_optimizer = TPOTRegressor(generations=80, population_size=100,
-                          offspring_size=None, mutation_rate=0.9,
-                          crossover_rate=0.1,
-                          scoring='neg_mean_squared_error', cv=5,
-                          subsample=1.0, n_jobs=8,
-                          max_time_mins=840, max_eval_time_mins=7,
-                          random_state=None, config_dict='TPOT sparse',
-                          warm_start=False,
-                          memory=None,
-                          use_dask=False,
-                          periodic_checkpoint_folder='TPOT_saves',
-                          early_stop=None,
-                          verbosity=3,
-                          disable_update_check=False)
+# from tpot import TPOTRegressor
+# pipeline_optimizer = TPOTRegressor(generations=80, population_size=100,
+#                           offspring_size=None, mutation_rate=0.9,
+#                           crossover_rate=0.1,
+#                           scoring='neg_mean_squared_error', cv=5,
+#                           subsample=1.0, n_jobs=8,
+#                           max_time_mins=840, max_eval_time_mins=7,
+#                           random_state=None, config_dict='TPOT sparse',
+#                           warm_start=False,
+#                           memory=None,
+#                           use_dask=False,
+#                           periodic_checkpoint_folder='TPOT_saves',
+#                           early_stop=None,
+#                           verbosity=3,
+#                           disable_update_check=False)
 
 X_train_ready_tpot = X_train_ready.values.astype('float')
-pipeline_optimizer.fit(X_train_ready_tpot, y_train)
 
-# Export:
+### This is where you use TPOT to train a model
+# pipeline_optimizer.fit(X_train_ready_tpot, y_train)
 
-pipeline_optimizer.export('pickles/tpot_guitar_pipeline.py')
+# # Export:
 
-input("Press Enter to continue...")
+# pipeline_optimizer.export('pickles/tpot_guitar_pipeline.py')
+
+# input("Press Enter to continue...")
 
 # ### Import TPOT-Selected Model
 # (Copy paste ideal pipeline from tpot_guitar_pipeline.py file)
 
-tpot = make_pipeline(SelectPercentile(score_func=f_regression, percentile=85), 
-                                  StackingEstimator(estimator=XGBRegressor(learning_rate=0.1, 
-                                                                           max_depth=5, 
-                                                                           min_child_weight=16, 
-                                                                           n_estimators=100, nthread=1, 
-                                                                           subsample=0.6500000000000001)),
-    
-                                  RandomForestRegressor(bootstrap=False, 
-                                                        max_features=0.1, 
-                                                        min_samples_leaf=3, 
-                                                        min_samples_split=9, 
-                                                        n_estimators=100)
-                                )
+tpot = make_pipeline(
+    make_union(
+        FunctionTransformer(copy),
+        StackingEstimator(estimator=RidgeCV())
+    ),
+    RandomForestRegressor(bootstrap=False, max_features=0.05, min_samples_leaf=1, min_samples_split=6, n_estimators=100)
+)
 
 print(stars)
 print('Training TPOT Pipeline...')
 
-tpot.fit(X_train_ready.values.astype('float'), y_train)
+tpot.fit(X_train_ready_tpot, y_train)
 
 print(stars)
 print('Pickling the TPOT...')

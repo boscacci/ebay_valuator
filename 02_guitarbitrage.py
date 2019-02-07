@@ -1,11 +1,11 @@
+from key import API_KEY
+
 address = input("Enter recipient email address: ")
 days_ahead = int(input("Enter how many days ahead you want to scrape for: "))
 
 stars = '**************'
 print(stars)
 print('Importing modules')
-
-from key import API_KEY
 
 import requests, json, os, pickle, yagmail, sys
 from datetime import datetime, timedelta
