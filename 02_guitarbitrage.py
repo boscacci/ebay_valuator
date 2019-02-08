@@ -25,7 +25,6 @@ from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 sys.path.insert(0, 'objects')
-sys.path.insert(0, 'data')
 sys.path.insert(0, 'pickles')
 
 # Trawl for Prospective Deals
@@ -41,14 +40,19 @@ AUCTIONWITHBIN = "AuctionWithBIN"
 
 ct = datetime.utcnow()
 now = datetime.now()
+
 two_days_from_now = now + timedelta(days=days_ahead)
+
 utc_ct = f'{ct.year}-'
 if len(str(ct.month)) < 2:
     utc_ct += '0'
 utc_ct += f'{ct.month}-'
-if len(str(ct.day)) < 2:
+
+if int(ct.day) + days_ahead < 10:
     utc_ct += '0'
-utc_ct += str(ct.day + 2) + 'T'
+
+utc_ct += str(ct.day + days_ahead) + 'T'
+
 if len(str(ct.hour)) < 2:
     utc_ct += '0'
 utc_ct += f'{ct.hour}:'
@@ -141,22 +145,23 @@ print('Trawling for goodies on the online:')
 
 # See this for eBay keyword formatting: https://developer.ebay.com/Devzone/finding/Concepts/FindingAPIGuide.html#usekeywords
 # URL Formatting can be found here: https://www.freeformatter.com/url-encoder.html
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions,'american+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions,'fender+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'gibson+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'ibanez+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'schecter+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'esp+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'jackson+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'prs+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'gretsch+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,2,find_current_auctions, 'japanese+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions,'american+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions,'fender+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'gibson+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'ibanez+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'schecter+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'esp+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'jackson+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'prs+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'gretsch+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'japanese+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
 
 
 print(stars)
 print('De-Serializing what we got from eBay:')
 
 from Axe_Object_memory import Axe
+# from Axe_Object import Axe
 
 guitars = []
 for prospect in prospects:
@@ -179,6 +184,27 @@ for prospect in prospects:
         print("skip")
         pass
 
+# print(stars)
+# print('Importing JSON Guitars')
+
+# file_names = [name for name in os.listdir('data/axe_specs/') if not name.startswith('.')] # Ignores hidden files on mac
+
+# guitars = []
+# for filename in file_names:
+#     try:
+#         this_axe = Axe('data/axe_listings', 'data/axe_specs', filename)
+#         if "LOT OF" not in this_axe.title.upper() and this_axe.price > 110 and this_axe.price < 890\
+#         and "TREMOLO" not in this_axe.title.upper():
+#             if this_axe.string_config and this_axe.string_config < 5:
+#                 continue
+#             if this_axe.market != 'EBAY-US':
+#                 continue
+#             if this_axe.year and this_axe.year > 2019:
+#                 continue
+#             guitars.append(this_axe)
+#     except ValueError:
+#         pass
+
 print(stars)
 print('More organizing data:')
 
@@ -196,7 +222,7 @@ start_hour          = pd.Series([1 for guitar in range(len(guitars))], name = 's
 end_hour            = pd.Series([1 for guitar in range(len(guitars))], name = 'end_hour_(7.667, 11.5]')
 start_weekday_6     = pd.Series([6 for guitar in range(len(guitars))], name = 'start_weekday_6')
 end_weekday_6       = pd.Series([6 for guitar in range(len(guitars))], name = 'end_weekday_6')
-# returns_time      = pd.Series([0 for guitar in range(len(guitars))], name = 'returns_time')
+returns_time      = pd.Series([0 for guitar in range(len(guitars))], name = 'returns_time')
 num_pics            = pd.Series([12 for guitar in range(len(guitars))], name = 'num_pics')
 best_offer_enabled  = pd.Series([True for guitar in range(len(guitars))], name = 'best_offer_enabled')
 ship_handling_time_2= pd.Series([1 for guitar in range(len(guitars))], name = 'ship_handling_time_2')
@@ -210,42 +236,16 @@ string_config       = pd.cut(pd.Series([guitar.string_config for guitar in guita
 country_manufacture = pd.Series([guitar.country_manufacture for guitar in guitars], name = "country_manufacture")
 model_year = pd.cut(pd.Series([guitar.year for guitar in guitars], name = "model_year"), [1700,1975,1990,1995,2000,2005,2007,2010,2011,2012,2013,2015])
 
-X_dummies = pd.concat([brand, title_lengths, color, country_manufacture, right_left_handed, best_offer_enabled, 
-    shipping_charged, returns, autopay, seller_country_US, ship_handling_time_2, listing_type_FixedPrice, 
-    ship_expedite, ship_type_Free, num_pics, auction_duration, start_hour, end_hour, start_weekday_6, 
-    end_weekday_6, seller_positive_percent, model_year, body_type, string_config],
+X_dummies = pd.concat([title_lengths, brand, color, country_manufacture, right_left_handed, best_offer_enabled, shipping_charged, 
+               returns, returns_time, autopay, seller_country_US, ship_handling_time_2, listing_type_FixedPrice, ship_expedite,
+               ship_type_Free, num_pics, auction_duration, start_hour, end_hour, start_weekday_6, end_weekday_6, 
+               seller_positive_percent, model_year, body_type, string_config],
               axis = 1)
 
-X = pd.get_dummies(X_dummies, drop_first=True)
+X_nontext = pd.get_dummies(X_dummies, drop_first=True)
 
-print(stars)
-print('Prepping new data to feed into lasso:')
-
-infile = open('pickles/bonus_columns','rb')
-bonus_columns = pickle.load(infile)
-infile.close()
-
-fillers = []
-remove = []
-for col in bonus_columns:
-    if col not in X.columns:
-        filler = pd.Series(np.full(len(guitars),0), name=col)
-        fillers.append(filler)
-for col in X.columns:
-    if col not in bonus_columns:
-        X.drop(col, axis=1, inplace=True)
-fillers_df = pd.concat(fillers, axis=1)
-
-X_nontext = pd.concat([X, fillers_df], axis=1)
-
-print(stars)
-print('Fetching the fitted scaler:')
-
-infile = open('pickles/saved_scaler','rb')
-scaler = pickle.load(infile)
-infile.close()
-
-X_nontext_scaled = pd.DataFrame(scaler.transform(X_nontext))
+# print(stars)
+# print('Prepping new data to feed into lasso:')
 
 stemmer = SnowballStemmer("english")
 
@@ -296,11 +296,35 @@ infile.close()
 print(stars)
 print('TF-IDF Transform:')
 
-
 tfidf = vectorizer.transform(processed_text)
 tfidf_df = pd.DataFrame(tfidf.toarray(), columns=vectorizer.get_feature_names())
 
-X_ready = pd.concat([X_nontext, tfidf_df], axis=1)
+X_prune = pd.concat([X_nontext, tfidf_df], axis=1)
+
+infile = open('pickles/bonus_columns','rb')
+bonus_columns = pickle.load(infile)
+infile.close()
+
+fillers = []
+for col in bonus_columns:
+    if col not in X_prune.columns:
+        filler = pd.Series(np.full(len(guitars),0), name=col)
+        fillers.append(filler)
+for col in X_prune.columns:
+    if col not in bonus_columns:
+        X_prune.drop(col, axis=1, inplace=True)
+fillers_df = pd.concat(fillers, axis=1)
+
+X = pd.concat([X_prune, fillers_df], axis=1)
+
+print(stars)
+print('Fetching the fitted scaler:')
+
+infile = open('pickles/saved_scaler','rb')
+scaler = pickle.load(infile)
+infile.close()
+
+X_ready_scaled = pd.DataFrame(scaler.transform(X))
 
 print(stars)
 print('Import Trained Regressor:')
@@ -314,7 +338,7 @@ infile.close()
 print(stars)
 print('Generate estimates:')
 
-y_preds = tpot.predict(X_ready)
+y_preds = tpot.predict(X_ready_scaled)
 
 bxcx_lam = .3
 y_preds_inv = inv_boxcox(y_preds, bxcx_lam)

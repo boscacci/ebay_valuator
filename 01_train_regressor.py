@@ -65,10 +65,10 @@ orig_prices = pd.Series([axe.price for axe in axes], name = 'prices')
 
 bxcx_lam = .3
 prices = pd.Series(boxcox([axe.price for axe in axes], lmbda=bxcx_lam), name = 'prices')
-plt.figure(figsize = (18,6))
-plt.hist(prices, bins=50)
-plt.ylabel('Frequency')
-plt.xlabel('Guitar Price in USD')
+# plt.figure(figsize = (18,6))
+# plt.hist(prices, bins=50)
+# plt.ylabel('Frequency')
+# plt.xlabel('Guitar Price in USD')
 # plt.show()
 
 title_lengths       = pd.Series([axe.len_title for axe in axes], name = 'title_lengths')
@@ -146,53 +146,32 @@ processed_text = pd.Series(list(map(process_doc, raw_corpus)), name = 'text')
 
 
 # ## Assemble the Feature Set
-y_X_dummies = pd.concat([prices, title_lengths, brand, color, country_manufacture, right_left_handed, best_offer_enabled, shipping_charged, 
+X_dummies = pd.concat([title_lengths, brand, color, country_manufacture, right_left_handed, best_offer_enabled, shipping_charged, 
                returns, returns_time, autopay, seller_country, ship_handling_time, listing_type, ship_expedite,
                ship_type, num_pics, auction_duration, start_hour, end_hour, start_weekday, end_weekday, 
                seller_positive_percent, model_year, body_type, string_config],
               axis = 1)
 
-y_X = pd.get_dummies(y_X_dummies, drop_first=True)
-
-print(stars)
-print('Pickling columns...')
-
-filename = 'pickles/bonus_columns'
-outfile = open(filename, 'wb')
-pickle.dump(list(y_X.iloc[:,1:].columns), outfile)
-outfile.close()
+X = pd.get_dummies(X_dummies, drop_first=True)
 
 # ### SPLIT
 
 print(stars)
 print('Splitting...')
 
-y_X = pd.concat([y_X, processed_text], axis=1)
-X_train, X_test, y_train, y_test = train_test_split(y_X.iloc[:,1:], y_X.iloc[:,0], test_size=.20, random_state=42)
-
-
-print(stars)
-print('Scaling...')
-
-# ### Scale It 
-scaler = StandardScaler()
-X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train.iloc[:,:-1]), columns=X_train.iloc[:,:-1].columns)
-X_test_scaled  = pd.DataFrame(scaler.transform(X_test.iloc[:,:-1]), columns=X_test.iloc[:,:-1].columns)
-
-outfile = open('pickles/saved_scaler','wb')
-pickle.dump(scaler,outfile)
-outfile.close()
+X = pd.concat([X, processed_text], axis=1)
+X_train, X_test, y_train, y_test = train_test_split(X, prices, test_size=.20)#, random_state=42)
 
 # Text Features vectorization
+
+print(stars)
+print('Vectorizing Text...')
 
 vectorizer = TfidfVectorizer(norm=None, ngram_range=(2,3), strip_accents='ascii',
 #                             max_df=0.8, min_df=2,
                              max_features=300)
 
 vectorizer.fit(X_train['text'])
-
-print(stars)
-print('Vectorizing Text...')
 
 outfile = open('pickles/saved_vectorizer','wb')
 pickle.dump(vectorizer,outfile)
@@ -204,8 +183,20 @@ tfidf_train_df = pd.DataFrame(tfidf_train.toarray(), columns=vectorizer.get_feat
 tfidf_test = vectorizer.transform(X_test['text'])
 tfidf_test_df = pd.DataFrame(tfidf_test.toarray(), columns=vectorizer.get_feature_names())
 
-X_train_ready = pd.concat([X_train.reset_index(drop=True), tfidf_train_df], axis=1).drop('text',axis=1)
-X_test_ready = pd.concat([X_test.reset_index(drop=True), tfidf_test_df], axis=1).drop('text',axis=1)
+X_train_to_scale = pd.concat([X_train.reset_index(drop=True), tfidf_train_df], axis=1).drop('text',axis=1)
+X_test_to_scale = pd.concat([X_test.reset_index(drop=True), tfidf_test_df], axis=1).drop('text',axis=1)
+
+print(stars)
+print('Scaling...')
+
+# ### Scale It 
+scaler = StandardScaler()
+X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train_to_scale), columns=X_train_to_scale.columns)
+X_test_scaled  = pd.DataFrame(scaler.transform(X_test_to_scale), columns=X_test_to_scale.columns)
+
+outfile = open('pickles/saved_scaler','wb')
+pickle.dump(scaler,outfile)
+outfile.close()
 
 # ### Generate a Tensorboard Projector Visualization:
 
@@ -239,18 +230,27 @@ price_mean_vector = inv_boxcox([price_mean for i in range(len(y_test))],bxcx_lam
 baseline_error = np.sqrt(mean_squared_error(inv_boxcox(y_test, bxcx_lam), price_mean_vector))
 baseline_error
 
+
+print(stars)
+print('Pickling columns...')
+
+filename = 'pickles/bonus_columns'
+outfile = open(filename, 'wb')
+pickle.dump(list(X_train_scaled.columns), outfile)
+outfile.close()
+
 print(stars)
 print('Training a Lasso Regressor...')
 
 # ### Lasso Regression
-lasso_model = LassoCV(cv=3).fit(X_train_ready, y_train)
+lasso_model = LassoCV(cv=3).fit(X_train_scaled, y_train)
 
 outfile = open('pickles/lasso_model','wb')
 pickle.dump(lasso_model,outfile)
 outfile.close()
 
-y_train_preds = lasso_model.predict(X_train_ready)
-y_test_preds = lasso_model.predict(X_test_ready)
+y_train_preds = lasso_model.predict(X_train_scaled)
+y_test_preds = lasso_model.predict(X_test_scaled)
 
 y_train_inv = inv_boxcox(y_train, bxcx_lam)
 y_test_inv = inv_boxcox(y_test, bxcx_lam)
@@ -274,7 +274,7 @@ plt.plot(np.full(len(x),500),x)
 plt.plot(x,np.full(len(x),500))
 plt.show()
 
-coef = pd.DataFrame(data = lasso_model.coef_, index=X_train_ready.columns)
+coef = pd.DataFrame(data = lasso_model.coef_, index=X_train_scaled.columns)
 model_coef = coef.sort_values(by=0).T
 model_coef.plot(kind='bar', title='Lasso Coefficients', legend=False, figsize=(16,5))
 plt.show()
@@ -344,10 +344,10 @@ print(f'However, when lasso guesses above ${price_thresh}, it\'s correct {round(
 #                           verbosity=3,
 #                           disable_update_check=False)
 
-X_train_ready_tpot = X_train_ready.values.astype('float')
+X_train_scaled_tpot = X_train_scaled.values.astype('float')
 
 ### This is where you use TPOT to train a model
-# pipeline_optimizer.fit(X_train_ready_tpot, y_train)
+# pipeline_optimizer.fit(X_train_scaled_tpot, y_train)
 
 # # Export:
 
@@ -369,7 +369,7 @@ tpot = make_pipeline(
 print(stars)
 print('Training TPOT Pipeline...')
 
-tpot.fit(X_train_ready_tpot, y_train)
+tpot.fit(X_train_scaled_tpot, y_train)
 
 print(stars)
 print('Pickling the TPOT...')
@@ -379,8 +379,8 @@ outfile = open(filename, 'wb')
 pickle.dump(tpot, outfile)
 outfile.close()
 
-y_train_preds_tpot = tpot.predict(X_train_ready.values.astype('float'))
-y_test_preds_tpot = tpot.predict(X_test_ready.values.astype('float'))
+y_train_preds_tpot = tpot.predict(X_train_scaled.values.astype('float'))
+y_test_preds_tpot = tpot.predict(X_test_scaled.values.astype('float'))
 
 y_train_preds_inv_tpot = inv_boxcox(y_train_preds_tpot, bxcx_lam)
 y_test_preds_inv_tpot = inv_boxcox(y_test_preds_tpot, bxcx_lam)
