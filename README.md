@@ -2,6 +2,8 @@
 
 Trawls eBay for undervalued used guitars.
 
+![](/_media/guitar_projector_small.gif)
+
 ## About
 
 Estimates of value are based on: 
@@ -21,12 +23,4 @@ __01_train_regressor__ : Parses out the fetched JSONs and attempts to train a ba
 
 __02_guitarbitrage__ : Fetches open eBay auctions and, using the trained model, tabulates a ratio between current high bids and predicted final sale prices. Formats an email for the user with 10 of the most "undervalued" guitars on the market closing soon.
 
-Just trying to predict final sale price as a regression problem, predictive performance on a holdout test set wasn't terrific: RMSE was only about 27% better than just guessing the mean.
-
-What I then realized was that mine was a pretty conservative estimator, price-wise: It usually guessed too low. If I re-framed it as a classification problem ("will a guitar sell for more than X dollars?"), then I had far more false negatives than false positives. This led me to believe it wasn't totally useless.
-
-So now it's trained to trawl eBay for what it thinks are undervalued guitars, put together a little email with its findings, and send them wherever you like.
-
-Grab an eBay API key and run the .py modules in order from 01 to 03 to generate your very own inbox clutter.
-
-![](/_media/guitar_projector_small.gif)
+Just trying to predict final sale price as a regression problem, predictive performance on a holdout test set wasn't terrific: RMSE was only about 27% better than just guessing the mean. However, as a classifier (trying to predict whether or not a guitar will sell above say $600) the model skews towards the right kind of error—lots of false negatives and not so many false positives, like less than 11% false positives with a robust model.
