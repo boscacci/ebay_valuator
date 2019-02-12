@@ -2,9 +2,10 @@
 
 ## Trawls eBay for undervalued used guitars.
 
-The idea was initially to train a model to estimate what the final auction price of your guitar would be - before you post it. 
-
-Estimates would be based on the item sale settings and item characteristics: Auction duration, return policy, and other technical features, combined with the features you enter about the guitar (body material, country of manufacture, brand, color, right-or-left handed..etc), as well as the text you enter into the title, description, and other fields.
+Estimates of value are based on: 
+* __Item Characteristics__: Body material, country of manufacture, brand, color, right-or-left handed, etc. 
+* __Item sale settings__: Auction duration, return policy, shipping fees, etc.
+* __Other text input data__: Auction title, description, and other fields such as condition description and subtitle.
 
 So I pulled a lot of real eBay data: about 15k closed used guitar auctions that ended in sales (caveat). I parsed and visualized the data, wrangled the seemingly relevant features, and threw them at a lasso regression model. This included TF-IDF transformed text bigrams, which resulted in features like "hardshell_case" and "mint_condition". 
 
