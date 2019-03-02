@@ -1,8 +1,5 @@
 from key import API_KEY
 
-address = input("Enter recipient email address: ")
-days_ahead = int(input("Enter how many days ahead you want to scrape for: "))
-
 stars = '**************'
 print(stars)
 print('Importing modules')
@@ -28,6 +25,9 @@ sys.path.insert(0, 'objects')
 sys.path.insert(0, 'pickles')
 
 # Trawl for Prospective Deals
+
+address = input("Enter recipient email address: ")
+days_ahead = int(input("Enter how many days ahead you want to scrape for: "))
 
 API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
 
