@@ -6,6 +6,16 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+requests = "*"
+yagmail = "*"
+pandas = "*"
+matplotlib = "*"
+scipy = "*"
+nltk = "*"
+sklearn = "*"
+tpot = "*"
+keyring = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"
