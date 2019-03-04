@@ -16,6 +16,8 @@ sklearn = "*"
 tpot = "*"
 keyring = "*"
 seaborn = "*"
+jupyter = "*"
+tornado = "==5.1.1"
 
 [requires]
 python_version = "3.7"
