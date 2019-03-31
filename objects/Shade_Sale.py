@@ -53,8 +53,8 @@ class Shade_Sale:
         
         # SELLER COUNTRY (ONE-HOT CATEGORICAL VAR)
         self.country_seller = self.__body['listing']['country'][0]
-        if self.country_seller not in ['US', 'JP', 'CA', 'GB']:
-            self.country_seller = 'OTHER'
+        if not self.country_seller:
+            self.country_seller = 'NOT_LISTED'
             
         # RETURNS OFFERED (ONE-HOT)
         self.returns = self.__body['listing']['returnsAccepted'][0] == 'true'
@@ -110,7 +110,7 @@ class Shade_Sale:
         if self.__body['specs'].get('Description'):
             self.description = self.__body['specs']['Description']
         else:
-            self.description = None
+            self.description = 'sunglasses'
             # ALSO ONE-HOT ENCODE WHETHER DESCRIPTION EXISTS OR NOT
             
         # SUBTITLE - ONE-HOT ENCODE WHETHER THIS EXISTS OR NOT
@@ -143,34 +143,21 @@ class Shade_Sale:
             self.__attrs = {prop['Name']:prop['Value'][0] 
                             for prop in self.__body['specs']['ItemSpecifics']['NameValueList']}
             
-            # BRAND / MAKE OF GUITAR - 1-HOT ENCODE
+            # BRAND / MAKE OF ITEM - 1-HOT ENCODE
             # 1-HOT ENCODE THE MERE EXISTENCE OF THIS VALUE
             # TOSS INTO NLP STEW
 
             self.brand = self.__attrs.get('Brand')
             if self.brand:
                 self.brand = self.brand.upper()
-            else: self.brand = "UNKNOWN"
-            
-    
-            # YEAR OF MANUFACTURE - IMPORTANT BINNABLE SCALAR WITH MANY MISSING VALUES 
-            # 1-HOT ENCODE THE EXISTENCE OF THIS VAR
-            if self.__attrs.get('Model Year'):
-                self.year = self.__attrs.get('Model Year')[:4]
-                if self.year:
-                    try:
-                        self.year = int(self.year)
-                        if self.year == 86:
-                            self.year = 1986
-                        if self.year < 1700:
-                            self.year = None
-                    except ValueError:
-                        self.year = None      
-            else: 
-                self.year = None
+                if 'RAY BAN' in self.brand or 'RAYBAN' in self.brand:
+                    self.brand = 'RAY-BAN'
+                if self.brand not in ['OAKLEY', 'RAY-BAN', 'OTHER', 'MAUI JIM', 'COSTA DEL MAR',
+                                        'PERSOL', 'CARTIER', 'GUCCI']:
+                    self.brand = "OTHER"
+            else: self.brand = "UNLISTED"
                 
-                
-            # MATERIAL OF GUITAR BODY - 
+            # MATERIAL
             # 1-HOT EXISTENCE OF THIS VARIABLE
             # TOSS IT INTO THE NLP STEW
             self.material = self.__attrs.get('Body Material')
@@ -186,14 +173,6 @@ class Shade_Sale:
                     self.material = "ASH"
                 if "MAPLE" in self.material:
                     self.material = "MAPLE"
-                    
-            # HANDEDNESS OF GUITAR (R/L) - 1-HOT THIS
-            self.right_left_handed = self.__attrs.get('Right-/ Left-Handed')
-            if self.right_left_handed:
-                if "R" in self.right_left_handed.upper():
-                    self.right_left_handed = "RIGHT"
-                else:
-                    self.right_left_handed = "LEFT"
             
             
             # COUNTRY OF MANUFACTURE - 1-HOT THIS
@@ -204,7 +183,9 @@ class Shade_Sale:
                     self.country_manufacture = 'KOREA'
                 if self.country_manufacture == 'UNITED STATES':
                     self.country_manufacture = 'USA'
-            else: self.country_manufacture = "UNKNOWN"
+                if self.country_manufacture not in 'ITALY USA JAPAN'.split():
+                    self.country_manufacture = 'OTHER'
+            else: self.country_manufacture = "NOT_LISTED"
                 # if self.country_manufacture not in ['USA', 'JAPAN',\
                 #                                     'MEXICO', 'KOREA',\
                 #                                     'CHINA','INDONESIA']:
@@ -223,26 +204,6 @@ class Shade_Sale:
                     self.body_type = "STRAT"
                 if self.body_type not in ['SOLID', 'SEMI-HOLLOW', 'HOLLOW', 'CLASSICAL']:
                     self.body_type = "OTHER"
-            
-            # STRING CONFIG - 1-HOT CATEGORICAL
-            self.string_config = self.__attrs.get('String Configuration')
-            if self.string_config:
-                self.string_config = self.string_config.upper()
-                self.string_config = self.string_config.split()[0]
-                if self.string_config.startswith("6"):
-                    self.string_config = "6"
-                if self.string_config.startswith("12"):
-                    self.string_config = "12"
-                if self.string_config == "SIX":
-                    self.string_config = "6"
-                if self.string_config == "TWELVE":
-                    self.string_config = "12"
-                try:
-                    self.string_config = int(self.string_config)
-                except TypeError:
-                    self.string_config = None
-                
-                
             
             # BODY COLOR - DUMP (+ "COLORED" for bigram) INTO NLP WITH DESCRIPTION
             # ONE-HOT ENCODE THE EXISTENCE OF THIS VARIABLE
@@ -324,25 +285,6 @@ class Shade_Sale:
         
         # INITIALIZING VARIABLES THAT DIDN'T GET ASSIGNED VALUES
         else:
-            self.color = self.brand = self.model = None
+            self.color = self.brand = self.model = 'UNLISTED'
             self.material = self.right_left_handed = self.country_manufacture = None
             self.body_type = self.string_config = self.listing_type = None    
-            self.year = None
-        
-        # ATTEMPT TO SCRAPE YEAR FROM TEXT FIELDS
-        year_pat = re.compile(r'(?<!NO )(?<!IN )(?<!MODEL )(?<!SINCE )(?<![\dA-Za-z-])(20[01]\d)(?!\d|\'|s)|(?<!NO )(?<!IN )(?<!MODEL )(?<!SINCE )(19[23456789]\d)(?!\d|\'|s)')
-        
-        if self.year == None or self.year == None:
-            if re.findall(year_pat, self.title):
-                self.year = re.findall(year_pat, self.title)[-1]
-            elif self.subtitle and re.findall(year_pat, self.subtitle):
-                self.year = re.findall(year_pat, self.subtitle)[-1]
-            elif self.condition_description and re.findall(year_pat, self.condition_description):
-                self.year = re.findall(year_pat, self.condition_description)[-1]
-            elif self.description and re.findall(year_pat, self.description):
-                self.year = re.findall(year_pat, self.description)[-1]
-        if type(self.year) == tuple:
-            try:
-                self.year = int(self.year[0])
-            except TypeError:
-                self.year = int(self.year[1])
