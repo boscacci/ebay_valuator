@@ -6,18 +6,13 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-requests = "*"
-yagmail = "*"
-pandas = "*"
-matplotlib = "*"
-scipy = "*"
-nltk = "*"
-sklearn = "*"
-tpot = "*"
-keyring = "*"
-seaborn = "*"
 jupyter = "*"
 tornado = "==5.1.1"
+requests = "*"
+matplotlib = "*"
+scipy = "*"
+pandas = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.7"
