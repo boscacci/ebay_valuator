@@ -144,7 +144,6 @@ class Shade_Sale:
                             for prop in self.__body['specs']['ItemSpecifics']['NameValueList']}
             
             # BRAND / MAKE OF ITEM - 1-HOT ENCODE
-            # 1-HOT ENCODE THE MERE EXISTENCE OF THIS VALUE
             # TOSS INTO NLP STEW
 
             self.brand = self.__attrs.get('Brand')
@@ -156,25 +155,44 @@ class Shade_Sale:
                                         'PERSOL', 'CARTIER', 'GUCCI']:
                     self.brand = "OTHER"
             else: self.brand = "UNLISTED"
-                
-            # MATERIAL
-            # 1-HOT EXISTENCE OF THIS VARIABLE
+            
+
+            # MODEL OF ITEM - 1-HOT ENCODE
+            # TOSS INTO NLP STEW
+
+            self.model = self.__attrs.get('Model')
+            if self.model:
+                self.model = self.model.upper()
+                if 'RAY BAN' in self.model or 'RAYBAN' in self.model:
+                    self.model = 'RAY-BAN'
+            else: self.model = "UNLISTED"
+
+            # FRAME MATERIAL
             # TOSS IT INTO THE NLP STEW
-            self.material = self.__attrs.get('Body Material')
-            if self.material:
-                self.material = self.material.upper()
-                if "MAHOGANY" in self.material:
-                    self.material = "MAHOGANY"
-                if "ROSEWOOD" in self.material:
-                    self.material = "ROSEWOOD"
-                if "ALDER" in self.material:
-                    self.material = "ALDER"
-                if "ASH" in self.material:
-                    self.material = "ASH"
-                if "MAPLE" in self.material:
-                    self.material = "MAPLE"
-            
-            
+            self.frame_material = self.__attrs.get('Frame Material')
+            if self.frame_material:
+                self.frame_material = self.frame_material.upper()
+                if "PLASTIC" in self.frame_material and "METAL" not in self.frame_material:
+                    self.frame_material = "PLASTIC"
+                if "METAL" in self.frame_material and "PLASTIC" not in self.frame_material:
+                    self.frame_material = "METAL"
+                if "METAL" in self.frame_material and "PLASTIC" in self.frame_material:
+                    self.frame_material = "METAL_AND_PLASTIC"
+                if "NYLON" in self.frame_material and "PLASTIC" not in self.frame_material\
+                and "METAL" not in self.frame_material:
+                    self.frame_material = "NYLON"
+                if "OMATTER" in self.frame_material or "O-MATTER" in self.frame_material or\
+                "O MATTER" in self.frame_material:
+                    self.frame_material = "O-MATTER"
+                if "GOLD" in self.frame_material:
+                    self.frame_material = "GOLD"
+                if "GRILAMID" in self.frame_material:
+                    self.frame_material = "GRILAMID"
+                if "WOOD" in self.frame_material:
+                    self.frame_material = "WOOD"
+                if self.frame_material not in ['PLASTIC', 'METAL', 'METAL_AND_PLASTIC']:
+                    self.frame_material = "OTHER"
+
             # COUNTRY OF MANUFACTURE - 1-HOT THIS
             self.country_manufacture = self.__attrs.get('Country/Region of Manufacture')
             if self.country_manufacture:
@@ -192,99 +210,208 @@ class Shade_Sale:
                 #     self.country_manufacture = 'OTHER'
             
             
-            # BODY TYPE - 1-HOT CATEGORICAL
-            self.body_type = self.__attrs.get('Body Type')
-            if self.body_type:
-                self.body_type = self.body_type.upper()
-                if self.body_type == "HOLLOW BODY" or self.body_type == "HOLLOWBODY" or self.body_type == "HOLLOW-BODY":
-                    self.body_type = "HOLLOW"
-                if self.body_type == "SOLID BODY" or self.body_type == "SOLIDBODY" or self.body_type == "SOLID-BODY":
-                    self.body_type = "SOLID"
-                if "STRAT" in self.body_type:
-                    self.body_type = "STRAT"
-                if self.body_type not in ['SOLID', 'SEMI-HOLLOW', 'HOLLOW', 'CLASSICAL']:
-                    self.body_type = "OTHER"
+            # LENS TECH - 1-HOT CATEGORICAL
+            self.lens_tech = self.__attrs.get('Lens Technology')
+            if self.lens_tech:
+                self.lens_tech = self.lens_tech.upper()
+                if "POLARIZED" and "MIRROR" in self.lens_tech:
+                    self.lens_tech = "POLARIZED_MIRRORED"
+                elif "GRADIENT" and "MIRROR" in self.lens_tech:
+                    self.lens_tech = "GRADIENT_MIRRORED"
+                elif "IRIDIUM" in self.lens_tech:
+                    self.lens_tech = "IRIDIUM"
+                elif "G" in self.lens_tech and "15" in self.lens_tech:
+                    self.lens_tech = "G15"
+                elif "POLARIZED" in self.lens_tech or "POLARIZD" in self.lens_tech:
+                    if "NON" not in self.lens_tech and "NOT" not in self.lens_tech:
+                        self.lens_tech = "POLARIZED"
+                if self.lens_tech not in ['POLARIZED', 'POLARIZED_MIRRORED', 'ANTI-REFLECTIVE', 'GRADIENT',
+                                            'UNLISTED', 'IRIDIUM']:
+                    self.lens_tech = "OTHER"
             
-            # BODY COLOR - DUMP (+ "COLORED" for bigram) INTO NLP WITH DESCRIPTION
+            # FRAME COLOR - DUMP (+ "COLORED" for bigram) INTO NLP WITH DESCRIPTION
             # ONE-HOT ENCODE THE EXISTENCE OF THIS VARIABLE
-            self.color = self.__attrs.get('Body Color')
-            if self.color:
-                self.color = self.color.upper()
-                if "CHERRY" in self.color:
-                    self.color = "RED"
-                if "SUNBURST" in self.color:
-                    self.color = "SUNBURST"
-                if "BURST" in self.color:
-                    self.color = "SUNBURST"
-                if "MAHOGANY" in self.color:
-                    self.color = "NATURAL"
-                if "BLUE" in self.color:
-                    self.color = "BLUE"
-                if "TURQUOISE" in self.color:
-                    self.color = "BLUE"
-                if "TEAL" in self.color:
-                    self.color = "BLUE"
-                if "RED" in self.color:
-                    self.color = "RED"
-                if "BLACK" in self.color:
-                    self.color = "BLACK"
-                if "EBONY" in self.color:
-                    self.color = "BLACK"
-                if "WHITE" in self.color:
-                    self.color = "WHITE"
-                if "GREEN" in self.color:
-                    self.color = "GREEN"
-                if "NATURAL" in self.color:
-                    self.color = "NATURAL"
-                if "BLONDE" in self.color:
-                    self.color = "NATURAL"
-                if "BLOND" in self.color:
-                    self.color = "NATURAL"
-                if "BEIGE" in self.color:
-                    self.color = "NATURAL"
-                if "MAPLE" in self.color:
-                    self.color = "NATURAL"
-                if "BUTTERSCOTCH" in self.color:
-                    self.color = "NATURAL"
-                if "WALNUT" in self.color:
-                    self.color = "NATURAL"
-                if "TOBACCO" in self.color:
-                    self.color = "NATURAL"
-                if "BROWN" in self.color:
-                    self.color = "NATURAL"
-                if "CREAM" in self.color:
-                    self.color = "WHITE"
-                if "GOLD" in self.color:
-                    self.color = "YELLOW"
-                if "YELLOW" in self.color:
-                    self.color = "YELLOW"
-                if "FIREGLO" in self.color:
-                    self.color = "RED"
-                if "WINE" in self.color:
-                    self.color = "RED"
-                if "BURGANDY" in self.color:
-                    self.color = "RED"
-                if "BURGUNDY" in self.color:
-                    self.color = "RED"
-                if "MULTI-COLOR" in self.color:
-                    self.color = "MULTICOLOR"
-                if "AMBER" in self.color:
-                    self.color = "YELLOW"
-                if "WOOD" in self.color:
-                    self.color = "NATURAL"
-                if "COPPER" in self.color:
-                    self.color = "RED"
-                if "PEWTER" in self.color:
-                    self.color = "GRAY"
-                if "GRAY" in self.color:
-                    self.color = "GRAY"
-                if self.color not in ['BLACK', 'RED', 'SUNBURST', 'WHITE', 'NATURAL', 'BLUE', 'YELLOW',
-                                       'GREEN']:
-                    self.color = "OTHER"
-            else: self.color = None
+            self.frame_color = self.__attrs.get('Frame Color')
+            if self.frame_color:
+                self.frame_color = self.frame_color.upper()
+                if "CHERRY" in self.frame_color:
+                    self.frame_color = "RED"
+                if "BURST" in self.frame_color:
+                    self.frame_color = "SUNBURST"
+                if "MAHOGANY" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "BLUE" in self.frame_color:
+                    self.frame_color = "BLUE"
+                if "TURQUOISE" in self.frame_color:
+                    self.frame_color = "BLUE"
+                if "TEAL" in self.frame_color:
+                    self.frame_color = "BLUE"
+                if "RED" in self.frame_color:
+                    self.frame_color = "RED"
+                if "BLACK" in self.frame_color:
+                    self.frame_color = "BLACK"
+                if "EBONY" in self.frame_color:
+                    self.frame_color = "BLACK"
+                if "WHITE" in self.frame_color:
+                    self.frame_color = "WHITE"
+                if "GREEN" in self.frame_color:
+                    self.frame_color = "GREEN"
+                if "NATURAL" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "BLONDE" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "BLOND" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "BEIGE" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "MAPLE" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "BUTTERSCOTCH" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "WALNUT" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "TOBACCO" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "BROWN" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "CREAM" in self.frame_color:
+                    self.frame_color = "WHITE"
+                if "YELLOW" in self.frame_color:
+                    self.frame_color = "YELLOW"
+                if "FIREGLO" in self.frame_color:
+                    self.frame_color = "RED"
+                if "WINE" in self.frame_color:
+                    self.frame_color = "RED"
+                if "BURGANDY" in self.frame_color:
+                    self.frame_color = "RED"
+                if "BURGUNDY" in self.frame_color:
+                    self.frame_color = "RED"
+                if "MULTI-COLOR" in self.frame_color:
+                    self.frame_color = "MULTICOLOR"
+                if "AMBER" in self.frame_color:
+                    self.frame_color = "YELLOW"
+                if "WOOD" in self.frame_color:
+                    self.frame_color = "BROWN"
+                if "COPPER" in self.frame_color:
+                    self.frame_color = "RED"
+                if "PEWTER" in self.frame_color:
+                    self.frame_color = "GRAY"
+                if "GRAY" in self.frame_color:
+                    self.frame_color = "GRAY"
+                if "TORTOISE" in self.frame_color:
+                    self.frame_color = "TORTOISE"
+                if self.frame_color not in ['BLACK', 'UNLISTED', 'GOLD', 'BROWN', 'SILVER', 'GRAY', 'WHITE']:
+                    self.frame_color = "OTHER"
+            else: self.frame_color = "UNLISTED"
+
+            # LENS COLOR
+            self.lens_color = self.__attrs.get('Frame Color')
+            if self.lens_color:
+                self.lens_color = self.lens_color.upper()
+                if "CHERRY" in self.lens_color:
+                    self.lens_color = "RED"
+                if "BURST" in self.lens_color:
+                    self.lens_color = "SUNBURST"
+                if "MAHOGANY" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "BLUE" in self.lens_color:
+                    self.lens_color = "BLUE"
+                if "TURQUOISE" in self.lens_color:
+                    self.lens_color = "BLUE"
+                if "TEAL" in self.lens_color:
+                    self.lens_color = "BLUE"
+                if "RED" in self.lens_color:
+                    self.lens_color = "RED"
+                if "BLACK" in self.lens_color:
+                    self.lens_color = "BLACK"
+                if "EBONY" in self.lens_color:
+                    self.lens_color = "BLACK"
+                if "WHITE" in self.lens_color:
+                    self.lens_color = "WHITE"
+                if "GREEN" in self.lens_color:
+                    self.lens_color = "GREEN"
+                if "NATURAL" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "BLONDE" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "BLOND" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "BEIGE" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "MAPLE" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "BUTTERSCOTCH" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "WALNUT" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "TOBACCO" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "BROWN" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "CREAM" in self.lens_color:
+                    self.lens_color = "WHITE"
+                if "YELLOW" in self.lens_color:
+                    self.lens_color = "YELLOW"
+                if "FIREGLO" in self.lens_color:
+                    self.lens_color = "RED"
+                if "WINE" in self.lens_color:
+                    self.lens_color = "RED"
+                if "BURGANDY" in self.lens_color:
+                    self.lens_color = "RED"
+                if "BURGUNDY" in self.lens_color:
+                    self.lens_color = "RED"
+                if "MULTI-COLOR" in self.lens_color:
+                    self.lens_color = "MULTICOLOR"
+                if "AMBER" in self.lens_color:
+                    self.lens_color = "YELLOW"
+                if "WOOD" in self.lens_color:
+                    self.lens_color = "BROWN"
+                if "COPPER" in self.lens_color:
+                    self.lens_color = "RED"
+                if "PEWTER" in self.lens_color:
+                    self.lens_color = "GRAY"
+                if "GRAY" in self.lens_color:
+                    self.lens_color = "GRAY"
+                if "TORTOISE" in self.lens_color:
+                    self.lens_color = "TORTOISE"
+                if self.lens_color not in ['BLACK', 'UNLISTED', 'GOLD', 'BROWN', 'SILVER', 'GRAY', 'WHITE']:
+                    self.lens_color = "OTHER"
+            else: self.lens_color = "UNLISTED"
+
+            # TEMPLE LENGTH
+            self.temple_length_binary = self.__attrs.get('Temple Length') != None
+
+            # STYLE
+            self.style = self.__attrs.get('Style')
+            if self.style:
+                self.style = self.style.upper()
+                if "AVIATOR" in self.style:
+                        self.style = "AVIATOR"
+                if "ATHLETIC" in self.style:
+                        self.style = "SPORT"
+                if "SPORT" in self.style:
+                        self.style = "SPORT"
+                if "SQUARE" in self.style:
+                        self.style = "SQUARE"
+                if "RECTANG" in self.style:
+                        self.style = "RECTANGULAR"
+                if self.style not in ['SPORT', 'VINTAGE', 'PILOT', 'RECTANGULAR', 'WRAP', 'SQUARE',
+                                      'DESIGNER', 'AVIATOR']:
+                    self.style = "OTHER"
+
+            # PROTECTION
+            self.protection = self.__attrs.get('Protection')
+            if self.protection:
+                self.protection = self.protection.upper()
+                if self.protection not in ['100% UVA & UVB', '100% UV', '100% UV400', 'UNLISTED']:
+                    self.protection = "OTHER"
         
         # INITIALIZING VARIABLES THAT DIDN'T GET ASSIGNED VALUES
         else:
-            self.color = self.brand = self.model = 'UNLISTED'
-            self.material = self.right_left_handed = self.country_manufacture = None
-            self.body_type = self.string_config = self.listing_type = None    
+            self.frame_color = self.brand = self.lens_tech = 'UNLISTED'
+            self.frame_material = self.country_manufacture = 'UNLISTED'
+            self.listing_type = self.lens_color = self.style = 'UNLISTED'
+            self.protection = self.model = "UNLISTED"
+            self.temple_length_binary = False
+
+        # Reminder to self, put model name in NLP stew
