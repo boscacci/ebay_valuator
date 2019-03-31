@@ -1,4 +1,4 @@
-# GuitArbitrage
+# eBay pre-sale valuator
 
 Trawls eBay and notifies the user of undervalued used electric guitar auctions ending soon.
 
