@@ -15,6 +15,11 @@ pandas = "*"
 numpy = "*"
 tensorflow = "*"
 xgboost = "*"
+missingno = "*"
+yagmail = "*"
+tpot = "*"
+sklearn = "*"
+nltk = "*"
 
 [requires]
 python_version = "3.7"
