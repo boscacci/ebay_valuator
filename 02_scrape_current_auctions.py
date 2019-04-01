@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 from key import API_KEY
 
 stars = '**************'
@@ -19,61 +25,80 @@ from nltk.corpus import stopwords
 from nltk import word_tokenize, FreqDist
 from nltk.stem.snowball import SnowballStemmer
 
+from scipy.stats import boxcox
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 sys.path.insert(0, 'objects')
 sys.path.insert(0, 'pickles')
 
+
+# In[2]:
+
+
 # Trawl for Prospective Deals
 
 address = input("Enter recipient email address: ")
-days_ahead = int(input("Enter how many days ahead you want to scrape for: "))
+hours_ahead = int(input("Enter how many hours ahead you want to scrape for: "))
 
 API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
 
 FIND_ADVANCED = "findItemsAdvanced" # This is the eBay API endpoint service we'll be querying.
-ELEC_GUITARS = '33034'
+# ELEC_GUITARS = '33034'
+MENS_SUNGLASSES = '79720'
 USED = '3000'
 AUCTION = "Auction"
 AUCTIONWITHBIN = "AuctionWithBIN"
 
-
 ct = datetime.utcnow()
 now = datetime.now()
 
-two_days_from_now = now + timedelta(days=days_ahead)
+endtime_datetime = now + timedelta(hours=hours_ahead)
 
-utc_ct = f'{ct.year}-'
+
+# In[4]:
+
+
+end_time = f'{ct.year}-'
+
 if len(str(ct.month)) < 2:
-    utc_ct += '0'
-utc_ct += f'{ct.month}-'
+    end_time += '0'
+end_time += f'{ct.month}-'
 
-if int(ct.day) + days_ahead < 10:
-    utc_ct += '0'
+day_incrementer = (ct.hour + hours_ahead) // 24
 
-utc_ct += str(ct.day + days_ahead) + 'T'
+if int(ct.day + day_incrementer) < 10:
+    end_time += '0'
+end_time += str(ct.day + day_incrementer) + 'T'
 
-if len(str(ct.hour)) < 2:
-    utc_ct += '0'
-utc_ct += f'{ct.hour}:'
+if len(str((ct.hour + hours_ahead)%24)) < 2:
+    end_time += '0'
+end_time += f'{(ct.hour + hours_ahead) % 24}:'
+
 if len(str(ct.minute)) < 2:
-    utc_ct += '0'
-utc_ct += f'{ct.minute}:'
-if len(str(ct.second)) < 2:
-    utc_ct += '0'
-utc_ct += f'{ct.second}.'
-if len(str(ct.microsecond)) < 2:    
-    utc_ct += '0'
-utc_ct += str(ct.microsecond)[:3] + 'Z'
+    end_time += '0'
+end_time += f'{ct.minute}:'
 
-ITEM_FILTER_0 = f'itemFilter(0).name=Condition&itemFilter(0).value={USED}' # Only used guitars
+if len(str(ct.second)) < 2:
+    end_time += '0'
+end_time += f'{ct.second}.'
+
+if len(str(ct.microsecond)) < 2:    
+    end_time += '0'
+end_time += str(ct.microsecond)[:3] + 'Z'
+
+
+# In[5]:
+
+
+ITEM_FILTER_0 = f'itemFilter(0).name=Condition&itemFilter(0).value={USED}' # Only used items
 ITEM_FILTER_1 = f'itemFilter(1).name=HideDuplicateItems&itemFilter(1).value=true' # No duplicate listings
 ITEM_FILTER_2 = f'itemFilter(2).name=MinPrice&itemFilter(2).value=1' # Only items that sell for > this value
 ITEM_FILTER_3 = f'itemFilter(3).name=MaxQuantity&itemFilter(3).value=1' # No lots or batch sales. One item at a time
-ITEM_FILTER_4 = f'itemFilter(4).name=MaxPrice&itemFilter(4).value=310' # Only items that sold for < this value
-ITEM_FILTER_5 = f'itemFilter(5).name=EndTimeTo&itemFilter(5).value={utc_ct}' # Only ending soonish
+ITEM_FILTER_4 = f'itemFilter(4).name=MaxPrice&itemFilter(4).value=200' # Only items going for < this value
+ITEM_FILTER_5 = f'itemFilter(5).name=EndTimeTo&itemFilter(5).value={end_time}' # Only ending soonish
 
-def find_current_auctions(PAGE, keywords):
+def find_current_auctions(PAGE):#, keywords):
     '''Make a request to the eBay API and return the JSON text of this page number'''
     r = requests.get(
                  f'https://svcs.ebay.com/services/search/FindingService/v1?'
@@ -81,7 +106,7 @@ def find_current_auctions(PAGE, keywords):
                  f'X-EBAY-SOA-SECURITY-APPNAME={API_KEY}&'
                  f'RESPONSE-DATA-FORMAT=JSON&'
                  f'REST-PAYLOAD&'
-                 f'categoryId={ELEC_GUITARS}&'
+                 f'categoryId={MENS_SUNGLASSES}&'
                  f'descriptionSearch=true&'
                  f'{ITEM_FILTER_0}&' # USED
                  f'{ITEM_FILTER_1}&' # NO DUPES
@@ -89,7 +114,7 @@ def find_current_auctions(PAGE, keywords):
                  f'{ITEM_FILTER_3}&' # NO LOTS
                  f'{ITEM_FILTER_4}&' # MAX PRICE
                  f'{ITEM_FILTER_5}&' # END TIME
-                 f'keywords={keywords}&'
+#                  f'keywords={keywords}&'
                  f'paginationInput.pageNumber={str(PAGE)}') # value to be looped through when collecting lotsa data
     if r.json()['findItemsAdvancedResponse'][0].get('searchResult'):
         return r.json()['findItemsAdvancedResponse'][0]['searchResult'][0]['item']
@@ -111,29 +136,32 @@ def get_specs(ITEM_ID):
         pass
 
 
-def trawl_for_guitars(start_page, stop_page, fetch_function, keywords):
-    '''Spams the eBay API for pages of AXE DATA'''
+# In[6]:
+
+
+def trawl_for_items(start_page, stop_page, fetch_function):#, keywords):
+    '''Spams the eBay API for pages of data'''
     j = 0
     k = 0
-    existing_guitar_ids = []
+    existing_item_ids = []
     listings = []
     
     for i in range(start_page+1, stop_page+1):
-        page = fetch_function(i, keywords)
+        page = fetch_function(i)#, keywords)
         if page:
-            for axe in page:
+            for item in page:
                 k += 1
-                if axe['itemId'][0] not in existing_guitar_ids:
-                    existing_guitar_ids.append(axe['itemId'][0])
+                if item['itemId'][0] not in existing_item_ids:
+                    existing_item_ids.append(item['itemId'][0])
                     j += 1
                     print(f'Get {j}')
-                    listings.append({'listing': axe,
-                                     'specs': get_specs(axe['itemId'][0])})
+                    listings.append({'listing': item,
+                                     'specs': get_specs(item['itemId'][0])})
                 else:
                     print('Skip')
     
-    print(f'\nChecked {k} guitars')
-    print(f'\nGot {j} new guitars')
+    print(f'\nChecked {k} items')
+    print(f'\nGot {j} new items')
     
     return listings
 
@@ -145,130 +173,147 @@ print('Trawling for goodies on the online:')
 
 # See this for eBay keyword formatting: https://developer.ebay.com/Devzone/finding/Concepts/FindingAPIGuide.html#usekeywords
 # URL Formatting can be found here: https://www.freeformatter.com/url-encoder.html
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions,'american+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions,'fender+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'gibson+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'ibanez+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'schecter+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'esp+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'jackson+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'prs+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'gretsch+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
-prospects.extend(trawl_for_guitars(0,3,find_current_auctions, 'japanese+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+prospects.extend(trawl_for_items(0,3,find_current_auctions))#,'american+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
+
+
+# In[7]:
 
 
 print(stars)
 print('De-Serializing what we got from eBay:')
 
-from Axe_Object_memory import Axe
-# from Axe_Object import Axe
+from Shade_Sale_memory import Shade_Sale_Memory
 
-guitars = []
+items = []
 for prospect in prospects:
     if prospect.get('specs'):
         try:
-            this_axe = Axe(prospect['listing'],prospect['specs'])
-            if "LOT OF" not in this_axe.title.upper() and this_axe.price > 90 and this_axe.price < 800\
-        and "TREMOLO" not in this_axe.title.upper():
-                if this_axe.string_config and this_axe.string_config < 5:
+            this_item = Shade_Sale_Memory(prospect['listing'],prospect['specs'])
+            if "LOT OF" not in this_item.title.upper():
+                if this_item.end_time > endtime_datetime or this_item.end_time < now:
+                    print('invalid time')
                     continue
-                if this_axe.year and this_axe.year > 2019:
-                    continue
-                if this_axe.end_time > two_days_from_now or this_axe.end_time < now:
-                    continue
-                guitars.append(this_axe)
+                else: items.append(this_item)
+            else:
+                print('this is a lot'); continue
         except ValueError:
-            print("skip")
+            print("val_error")
             pass
     else:
-        print("skip")
+        print("no specs")
         pass
 
-# print(stars)
-# print('Importing JSON Guitars')
 
-# file_names = [name for name in os.listdir('data/axe_specs/') if not name.startswith('.')] # Ignores hidden files on mac
+# In[10]:
 
-# guitars = []
-# for filename in file_names:
-#     try:
-#         this_axe = Axe('data/axe_listings', 'data/axe_specs', filename)
-#         if "LOT OF" not in this_axe.title.upper() and this_axe.price > 110 and this_axe.price < 890\
-#         and "TREMOLO" not in this_axe.title.upper():
-#             if this_axe.string_config and this_axe.string_config < 5:
-#                 continue
-#             if this_axe.market != 'EBAY-US':
-#                 continue
-#             if this_axe.year and this_axe.year > 2019:
-#                 continue
-#             guitars.append(this_axe)
-#     except ValueError:
-#         pass
 
 print(stars)
 print('More organizing data:')
 
 # Properties
-title_lengths       = pd.Series([guitar.len_title for guitar in guitars], name = 'title_lengths')
-auction_duration    = pd.Series(np.full(len(guitars),7*24), name = 'auction_duration')
-shipping_charged    = pd.Series(np.full(len(guitars),0), name = 'shipping_charged')          
-seller_country_US   = pd.Series([1 for i in range(len(guitars))], name = 'seller_country_US')
-autopay             = pd.Series([False for guitar in range(len(guitars))], name = 'autopay')
-returns             = pd.Series([False for guitar in range(len(guitars))], name = 'returns')
-listing_type_FixedPrice = pd.Series([True for guitar in range(len(guitars))], name = 'listing_type_FixedPrice')
-ship_type_Free      = pd.Series([1 for guitar in range(len(guitars))], name = 'ship_type_Free')
-ship_expedite       = pd.Series([0 for guitar in range(len(guitars))], name = 'ship_expedite')
-start_hour          = pd.Series([1 for guitar in range(len(guitars))], name = 'start_hour_(7.667, 11.5]')
-end_hour            = pd.Series([1 for guitar in range(len(guitars))], name = 'end_hour_(7.667, 11.5]')
-start_weekday_6     = pd.Series([6 for guitar in range(len(guitars))], name = 'start_weekday_6')
-end_weekday_6       = pd.Series([6 for guitar in range(len(guitars))], name = 'end_weekday_6')
-returns_time      = pd.Series([0 for guitar in range(len(guitars))], name = 'returns_time')
-num_pics            = pd.Series([12 for guitar in range(len(guitars))], name = 'num_pics')
-best_offer_enabled  = pd.Series([True for guitar in range(len(guitars))], name = 'best_offer_enabled')
-ship_handling_time_2= pd.Series([1 for guitar in range(len(guitars))], name = 'ship_handling_time_2')
-seller_positive_percent = pd.Series([1 for guitar in range(len(guitars))], name = 'seller_positive_percent_(99.5, 111.0]')
-brand = pd.Series([guitar.brand for guitar in guitars], name = "brand")
-body_type           = pd.Series([guitar.body_type for guitar in guitars], name = "body_type")
-color               = pd.Series([guitar.color for guitar in guitars], name = "color")
-right_left_handed   = pd.Series([guitar.right_left_handed for guitar in guitars], name = "right_left_handed")
-string_config       = pd.cut(pd.Series([guitar.string_config for guitar in guitars], name = "string_config"),
-                       [0,5,6,11,20])
-country_manufacture = pd.Series([guitar.country_manufacture for guitar in guitars], name = "country_manufacture")
-model_year = pd.cut(pd.Series([guitar.year for guitar in guitars], name = "model_year"), [1700,1975,1990,1995,2000,2005,2007,2010,2011,2012,2013,2015])
+title_lengths       = pd.Series([item.len_title for item in items], name = 'title_lengths')
+auction_duration    = pd.Series(np.full(len(items),7*24), name = 'auction_duration')
+shipping_charged    = pd.Series(np.full(len(items),0), name = 'shipping_charged')          
+seller_country_US   = pd.Series([1 for i in range(len(items))], name = 'seller_country_US')
+autopay             = pd.Series([False for item in range(len(items))], name = 'autopay')
+returns             = pd.Series([False for item in range(len(items))], name = 'returns')
+listing_type_FixedPrice = pd.Series([True for item in range(len(items))], name = 'listing_type_FixedPrice')
+ship_type_Free      = pd.Series([1 for item in range(len(items))], name = 'ship_type_Free')
+ship_expedite       = pd.Series([0 for item in range(len(items))], name = 'ship_expedite')
+start_hour          = pd.Series([1 for item in range(len(items))], name = 'start_hour_(7.667, 11.5]')
+end_hour            = pd.Series([1 for item in range(len(items))], name = 'end_hour_(7.667, 11.5]')
+start_weekday_6     = pd.Series([6 for item in range(len(items))], name = 'start_weekday_6')
+end_weekday_6       = pd.Series([6 for item in range(len(items))], name = 'end_weekday_6')
+brand               = pd.Series([item.brand for item in items], name = "brand")
+returns_time        = pd.Series([0 for item in range(len(items))], name = 'returns_time')
+num_pics            = pd.Series([12 for item in range(len(items))], name = 'num_pics')
+best_offer_enabled  = pd.Series([True for item in range(len(items))], name = 'best_offer_enabled')
+ship_handling_time_2= pd.Series([1 for item in range(len(items))], name = 'ship_handling_time_2')
+seller_positive_percent = pd.Series([1 for item in range(len(items))], name = 'seller_positive_percent_(99.5, 111.0]')
+frame_color         = pd.Series([item.frame_color for item in items], name = "frame_color")
+lens_color          = pd.Series([item.lens_color for item in items], name = "lens_color")
+frame_material      = pd.Series([item.frame_material for item in items], name = "frame_material")
+lens_tech           = pd.Series([item.lens_tech for item in items], name = "lens_tech")
+country_manufacture = pd.Series([item.country_manufacture for item in items], name = "country_manufacture")
+temple_length_listed= pd.Series([item.temple_length_binary for item in items], name = "temple_length_listed")
+style               = pd.Series([item.style for item in items], name = "style")
+protection          = pd.Series([item.protection for item in items], name = "protection")
 
-X_dummies = pd.concat([title_lengths, brand, color, country_manufacture, right_left_handed, best_offer_enabled, shipping_charged, 
-               returns, returns_time, autopay, seller_country_US, ship_handling_time_2, listing_type_FixedPrice, ship_expedite,
-               ship_type_Free, num_pics, auction_duration, start_hour, end_hour, start_weekday_6, end_weekday_6, 
-               seller_positive_percent, model_year, body_type, string_config],
+feedback_lmbda = -.02
+seller_feedback_score_boxed = pd.Series(boxcox([item.seller_feedback_score + 5 for item in items], lmbda=feedback_lmbda), name='seller_feedback_score_boxed')
+
+
+X_dummies = pd.concat([title_lengths, 
+                       brand, 
+                       frame_color, 
+                       frame_material, 
+                       lens_color,
+                       lens_tech,
+                       country_manufacture, 
+                       best_offer_enabled, 
+                       shipping_charged, 
+                       returns,
+                       returns_time,
+                       autopay, 
+                       ship_handling_time_2, 
+                       listing_type_FixedPrice, 
+                       ship_expedite,
+                       ship_type_Free, 
+                       num_pics, 
+                       auction_duration, 
+                       start_hour, 
+                       end_hour, 
+                       start_weekday_6, 
+                       end_weekday_6, 
+                       seller_feedback_score_boxed,
+                       style,
+                       protection,
+                       temple_length_listed],
               axis = 1)
 
 X_nontext = pd.get_dummies(X_dummies, drop_first=True)
 
-# print(stars)
-# print('Prepping new data to feed into lasso:')
+
+# In[11]:
+
+
+print(stars)
+print('Text Processing:')
+
+# ## Text as a Regression Feature
+# http://www-stat.wharton.upenn.edu/~stine/research/regressor.pdf
+def assemble_guitar_document(item):
+    document = item.title + ' '
+    if item.frame_color != 'UNLISTED':
+        document += item.frame_color + ' '
+    if item.lens_color != 'UNLISTED':
+        document += item.lens_color + ' '
+    if item.frame_material != 'UNLISTED':
+        document += item.frame_material + ' '
+    if item.model != 'UNLISTED':
+        document += item.model + ' ' 
+    if item.style != 'UNLISTED':
+        document += item.style + ' '
+    if item.brand != 'UNLISTED':
+        document += item.brand + ' '
+    if item.lens_tech != 'UNLISTED':
+        document += item.lens_tech + ' '
+    if item.protection != 'UNLISTED':
+        document += item.protection + ' '
+    if item.subtitle != None:
+        document += item.subtitle + ' '
+    if item.condition_description != None:
+        document += item.condition_description + ' '
+    if item.description != None:
+        document += item.description
+    return document
+
+raw_corpus = [assemble_guitar_document(item).lower() for item in items]
 
 stemmer = SnowballStemmer("english")
 
 stopwords_list = stopwords.words('english') + list(string.punctuation)
 stopwords_list += ["''", '""', '...', '``', ",", ".", ":", "'s", "--","’"]
-
-def assemble_guitar_document(axe):
-    document = axe.title + ' '
-    if axe.year != None:
-        document += (str(axe.year) + ' ')
-    if axe.material != None:
-        document += axe.material + ' '
-    if axe.model != None:
-        document += axe.model + ' ' 
-    if axe.brand != None:
-        document += axe.brand + ' '
-    if axe.subtitle != None:
-        document += axe.subtitle + ' '
-    if axe.condition_description != None:
-        document += axe.condition_description + ' '
-    if axe.description != None:
-        document += axe.description
-    return document
 
 def process_doc(doc):
     stopwords_removed = ''
@@ -279,10 +324,13 @@ def process_doc(doc):
     return stopwords_removed
 
 print(stars)
-print('Analyzing text of new prospects:')
+print('Processing Text Corpus...')
 
-raw_corpus = [assemble_guitar_document(guitar).lower() for guitar in guitars]
-processed_text = pd.Series(list(map(process_doc, raw_corpus)), name = 'text')
+processed_text = pd.Series(list(map(process_doc, raw_corpus)), 
+                           name = 'text')
+
+
+# In[12]:
 
 
 print(stars)
@@ -292,6 +340,10 @@ print('Importing saved vectorizer:')
 infile = open('pickles/saved_vectorizer','rb')
 vectorizer = pickle.load(infile)
 infile.close()
+
+
+# In[13]:
+
 
 print(stars)
 print('TF-IDF Transform:')
@@ -305,10 +357,14 @@ infile = open('pickles/bonus_columns','rb')
 bonus_columns = pickle.load(infile)
 infile.close()
 
+
+# In[14]:
+
+
 fillers = []
 for col in bonus_columns:
     if col not in X_prune.columns:
-        filler = pd.Series(np.full(len(guitars),0), name=col)
+        filler = pd.Series(np.full(len(items),0), name=col)
         fillers.append(filler)
 for col in X_prune.columns:
     if col not in bonus_columns:
@@ -316,6 +372,10 @@ for col in X_prune.columns:
 fillers_df = pd.concat(fillers, axis=1)
 
 X = pd.concat([X_prune, fillers_df], axis=1)
+
+
+# In[15]:
+
 
 print(stars)
 print('Fetching the fitted scaler:')
@@ -325,6 +385,10 @@ scaler = pickle.load(infile)
 infile.close()
 
 X_ready_scaled = pd.DataFrame(scaler.transform(X))
+
+
+# In[16]:
+
 
 print(stars)
 print('Import Trained Regressor:')
@@ -340,62 +404,80 @@ print('Generate estimates:')
 
 y_preds = tpot.predict(X_ready_scaled)
 
-bxcx_lam = .3
+bxcx_lam = 0
 y_preds_inv = inv_boxcox(y_preds, bxcx_lam)
 
+
+# In[58]:
+
+
 bids = []
-for guitar in guitars:
-    if guitar._Axe__body['listing']['sellingStatus'][0].get('bidCount'):
-        bids.append(guitar._Axe__body['listing']['sellingStatus'][0]['bidCount'][0])
+for item in items:
+    if item._Shade_Sale_Memory__body['listing']['sellingStatus'][0].get('bidCount'):
+        bids.append(item._Shade_Sale_Memory__body['listing']['sellingStatus'][0]['bidCount'][0])
     else:
         bids.append('0')
 
-predicted_df = pd.concat([pd.Series(y_preds_inv), pd.Series([guitar.initial_price + guitar.price_shipping for guitar in guitars]),
-                          pd.Series(y_preds_inv) / pd.Series([guitar.initial_price for guitar in guitars]),
-                          pd.Series([guitar.title for guitar in guitars]), 
-                          pd.Series([guitar.url for guitar in guitars]), 
-                         pd.Series([guitar.pic for guitar in guitars]),
-                         pd.Series(bids)],
+predicted_df = pd.concat([pd.Series(y_preds_inv), pd.Series([item.initial_price + item.price_shipping for item in items]),
+                          pd.Series(y_preds_inv) / pd.Series([item.initial_price for item in items]),
+                          pd.Series([item.title for item in items]), 
+                          pd.Series([item.url for item in items]), 
+                         pd.Series([item.pic for item in items]),
+                         pd.Series(bids),
+                         pd.Series([round((item.end_time - ct).seconds/60/60, 2) for item in items])],
                          axis=1)
 
-predicted_df.columns = ['Estimate', 'Price', 'Ratio','Title','Link', 'Pic', 'Bids']
+predicted_df.columns = ['Estimate', 'Price', 'Ratio','Title','Link', 'Pic', 'Bids', 'Hours_til_close']
 
-highest_value = predicted_df.sort_values('Estimate', ascending=False)
+highest_value = predicted_df[predicted_df.Price < predicted_df.Estimate].sort_values('Estimate', ascending=False)
 hv_10 = highest_value.iloc[:10,:]
 
-most_underrated = predicted_df.sort_values('Ratio', ascending=False)
+most_underrated = predicted_df[predicted_df.Price < predicted_df.Estimate].sort_values('Ratio', ascending=False)
 m_u = most_underrated.iloc[:10,:]
+
+
+# In[60]:
+
 
 print(stars)
 print('Formatting an email:')
 
-email = '\n<h3>10 Highest Potential Value:</h3>\n'
-email += "*******************************\n"
-    
-for i in range(10):
-    email += f"<a href = {hv_10['Link'].values[i]}>"
-    email += f"\n{hv_10['Title'].values[i]}\n\n"
-    email += f"<img src = {hv_10.Pic.values[i]}></img></a>\n"
-    email += f"\nCurrent Price: ${hv_10['Price'].values[i]}"
-    email += f"\nBids: {m_u['Bids'].values[i]}\n\n"
-    email += "*******************************\n"
-    
-email += "<h3>10 Most Underrated:</h3>\n"
+email = "<h3>5 Most Underrated:</h3>\n"
 
 email += "*******************************\n"
 
-for i in range(10):
+for i in range(5):
     email += f"<a href = {m_u['Link'].values[i]}>"
     email += f"\n{m_u['Title'].values[i]}\n\n:"
     email += f"<img src = {m_u['Pic'].values[i]}></img></a>\n"
     email += f"\nCurrent Price: ${m_u['Price'].values[i]}"
-    email += f"\nBids: {m_u['Bids'].values[i]}\n\n"
+    email += f"\nBids: {m_u['Bids'].values[i]}"
+    email += f"\nEnding in: {m_u['Hours_til_close'].values[i]} Hours\n\n"
+    email += "*******************************\n"
+    
+email += '\n<h3>5 Highest Potential Value:</h3>\n'
+email += "*******************************\n"
+    
+for i in range(5):
+    email += f"<a href = {hv_10['Link'].values[i]}>"
+    email += f"\n{hv_10['Title'].values[i]}\n\n"
+    email += f"<img src = {hv_10.Pic.values[i]}></img></a>\n"
+    email += f"\nCurrent Price: ${hv_10['Price'].values[i]}"
+    email += f"\nBids: {hv_10['Bids'].values[i]}"
+    email += f"\nEnding in: {hv_10['Hours_til_close'].values[i]} Hours\n\n"
     email += "*******************************\n"
 
 yag = yagmail.SMTP("gu1tarb1trag3@gmail.com")
 yag.send(
     to=address,
-    subject=f"GuitArbitrage - Auctions Ending Within {days_ahead} Day(s)",
+    subject=f"eBay TrawlBot - Auctions Ending Within {hours_ahead} Hour(s)",
     contents=email)
 
 print(f"Summary sent to {address.split('@')[0]}. Happy hunting")
+
+
+# In[ ]:
+
+
+
+
