@@ -442,7 +442,7 @@ m_u = most_underrated.iloc[:10,:]
 print(stars)
 print('Formatting an email:')
 
-email = "<h3>5 Most Underrated:</h3>\n"
+email = "<h3>5 Most Undervalued:</h3>\n"
 
 email += "*******************************\n"
 

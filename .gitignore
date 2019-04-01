@@ -48,5 +48,6 @@ Temporary Items
 .apdisk
 
 key.py
+lasso_coefs.csv
 
 # End of https://www.gitignore.io/api/macos,jupyternotebook
