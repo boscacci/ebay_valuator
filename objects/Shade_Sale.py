@@ -64,11 +64,19 @@ class Shade_Sale:
         
         # LISTING TYPE - 1-HOT
         self.listing_type = self.listing_info['listingType'][0]
+        if self.listing_type == "AuctionWithBIN":
+            self.listing_type = "AUCTION"
+        self.listing_type = self.listing_type.upper()
+        if not self.listing_type:
+            self.listing_type = "UNLISTED"
         
         ################# SHIPPING STUFF #################
         
         # SHIPPING TYPE - 1-HOT CATEGORICAL
         self.ship_type = self.__body['listing']['shippingInfo'][0]['shippingType'][0]
+        self.ship_type = self.ship_type.upper()
+        if self.ship_type not in ['CALCULATED', 'FLAT', 'FREE']:
+            self.ship_type = 'OTHER'
         
         # SHIPPING EXPEDITE - 1-HOT
         self.ship_expedite = self.__body['listing']['shippingInfo'][0]['expeditedShipping'][0] == 'true'
@@ -128,10 +136,7 @@ class Shade_Sale:
         if self.__body['specs']['Seller'].get('FeedbackScore'):
             self.seller_feedback_score = float(self.__body['specs']['Seller']['FeedbackScore'])
         else: 
-            self.seller_feedback_score = None
-        
-        # SELLER POSITIVE PERCENT - BIN THIS INTO CATEGORIES
-        self.seller_positive_percent = float(self.__body['specs']['Seller']['PositiveFeedbackPercent'])
+            self.seller_feedback_score = 0
         
         # BEST OFFER ENABLED - ONE-HOT ENCODE
         self.best_offer_enabled = self.__body['specs']['BestOfferEnabled']
@@ -192,6 +197,7 @@ class Shade_Sale:
                     self.frame_material = "WOOD"
                 if self.frame_material not in ['PLASTIC', 'METAL', 'METAL_AND_PLASTIC']:
                     self.frame_material = "OTHER"
+            else: self.frame_material = "UNLISTED"
 
             # COUNTRY OF MANUFACTURE - 1-HOT THIS
             self.country_manufacture = self.__attrs.get('Country/Region of Manufacture')
@@ -203,11 +209,7 @@ class Shade_Sale:
                     self.country_manufacture = 'USA'
                 if self.country_manufacture not in 'ITALY USA JAPAN'.split():
                     self.country_manufacture = 'OTHER'
-            else: self.country_manufacture = "NOT_LISTED"
-                # if self.country_manufacture not in ['USA', 'JAPAN',\
-                #                                     'MEXICO', 'KOREA',\
-                #                                     'CHINA','INDONESIA']:
-                #     self.country_manufacture = 'OTHER'
+            else: self.country_manufacture = "UNLISTED"
             
             
             # LENS TECH - 1-HOT CATEGORICAL
@@ -228,6 +230,7 @@ class Shade_Sale:
                 if self.lens_tech not in ['POLARIZED', 'POLARIZED_MIRRORED', 'ANTI-REFLECTIVE', 'GRADIENT',
                                             'UNLISTED', 'IRIDIUM']:
                     self.lens_tech = "OTHER"
+            else: self.lens_tech = "UNLISTED"
             
             # FRAME COLOR - DUMP (+ "COLORED" for bigram) INTO NLP WITH DESCRIPTION
             # ONE-HOT ENCODE THE EXISTENCE OF THIS VARIABLE
@@ -305,7 +308,7 @@ class Shade_Sale:
             else: self.frame_color = "UNLISTED"
 
             # LENS COLOR
-            self.lens_color = self.__attrs.get('Frame Color')
+            self.lens_color = self.__attrs.get('Lens Color')
             if self.lens_color:
                 self.lens_color = self.lens_color.upper()
                 if "CHERRY" in self.lens_color:
@@ -398,6 +401,7 @@ class Shade_Sale:
                 if self.style not in ['SPORT', 'VINTAGE', 'PILOT', 'RECTANGULAR', 'WRAP', 'SQUARE',
                                       'DESIGNER', 'AVIATOR']:
                     self.style = "OTHER"
+            else: self.style = "UNLISTED"
 
             # PROTECTION
             self.protection = self.__attrs.get('Protection')
@@ -405,12 +409,13 @@ class Shade_Sale:
                 self.protection = self.protection.upper()
                 if self.protection not in ['100% UVA & UVB', '100% UV', '100% UV400', 'UNLISTED']:
                     self.protection = "OTHER"
+            else: self.protection = "UNLISTED"
         
         # INITIALIZING VARIABLES THAT DIDN'T GET ASSIGNED VALUES
         else:
             self.frame_color = self.brand = self.lens_tech = 'UNLISTED'
             self.frame_material = self.country_manufacture = 'UNLISTED'
-            self.listing_type = self.lens_color = self.style = 'UNLISTED'
+            self.lens_color = self.style = 'UNLISTED'
             self.protection = self.model = "UNLISTED"
             self.temple_length_binary = False
 

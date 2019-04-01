@@ -13,6 +13,8 @@ matplotlib = "*"
 scipy = "*"
 pandas = "*"
 numpy = "*"
+tensorflow = "*"
+xgboost = "*"
 
 [requires]
 python_version = "3.7"
