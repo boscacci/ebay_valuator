@@ -9,6 +9,9 @@
 # DATA folder
 data
 
+# Pickled models and such
+pickles
+
 # Remove previous ipynb_checkpoints
 #   git rm -r .ipynb_checkpoints/
 #
