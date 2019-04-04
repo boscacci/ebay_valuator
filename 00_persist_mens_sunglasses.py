@@ -3,8 +3,12 @@
 
 import json, os, requests
 
-from key import API_KEY
+import pymongo
+from pymongo import MongoClient
+client = MongoClient()
+db = client.ebay_val
 
+from key import API_KEY
 API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
 
 # FILM_CAMS = '15230'
@@ -29,7 +33,7 @@ ITEM_FILTER_7 = f'itemFilter(7).name=listingType&itemFilter(7).value={AUCTIONWIT
 FIND_COMPLETED = 'findCompletedItems' # This is the eBay API endpoint service we'll be querying.
 
 def find_completed_auction(PAGE):
-    '''Make a request to the eBay API and return the JSON text of this page number'''
+    '''Give it a page num, returns a list of json-style listings'''
     r = requests.get(f'https://svcs.ebay.com/services/search/FindingService/v1?'
                  f'OPERATION-NAME={FIND_COMPLETED}&'
                  f'X-EBAY-SOA-SECURITY-APPNAME={API_KEY}&'
@@ -54,7 +58,7 @@ def find_completed_auction(PAGE):
 
 # For BUY IT NOW:
 def find_completed_auction_BIN(PAGE):
-    '''Make a request to the eBay API and return the JSON text of this page number'''
+    '''Give it a page num, returns a list of json-style listings'''
     r = requests.get(f'https://svcs.ebay.com/services/search/FindingService/v1?'
                  f'OPERATION-NAME={FIND_COMPLETED}&'
                  f'X-EBAY-SOA-SECURITY-APPNAME={API_KEY}&'
@@ -72,6 +76,7 @@ def find_completed_auction_BIN(PAGE):
                  f'paginationInput.pageNumber={str(PAGE)}&' # value to be looped through when collecting lotsa data
                  f'outputSelector=PictureURLLarge') # Why not grab the thumbnail URLs too. Could be cool
     if r.json()['findCompletedItemsResponse'][0].get('searchResult'):
+        # This returns the whole page as a list of dicts:
         return r.json()['findCompletedItemsResponse'][0]['searchResult'][0]['item']
     else:
         return None
@@ -113,6 +118,27 @@ def persist_spec_to_json(spec):
     pass
 
 
+def page_of_listings_to_mongo(page):
+    listings = db.listings
+    for listing in page:
+        try:
+            listings.insert_one(listing)
+        except pymongo.errors.DuplicateKeyError:
+            continue
+    pass
+
+def spam_the_api_mongo(start_page, stop_page, fetch_function):
+    # existing_files = [name.split('_')[0] for name in os.listdir('data/specs/') if not name.startswith('.')] # Ignore .DS_Store
+    j = 0
+    k = 0    
+    '''Spams the eBay API for pages of item DATA'''
+    for i in range(start_page+1, stop_page+1):
+        page = fetch_function(i)
+        if page != None:
+            # import pdb; pdb.set_trace()
+            page_of_listings_to_mongo(page)
+    pass
+
 # Okay, careful, this is where we start to hammer the eBay API a little bit.
 def spam_the_api(start_page, stop_page, fetch_function):
     existing_files = [name.split('_')[0] for name in os.listdir('data/specs/') if not name.startswith('.')] # Ignore .DS_Store
@@ -139,6 +165,5 @@ def spam_the_api(start_page, stop_page, fetch_function):
 
 
 # Again, you only get 5k API calls per day.
-spam_the_api(0,110, find_completed_auction)
-
-spam_the_api(0, 110, find_completed_auction_BIN)
+# spam_the_api(0,110, find_completed_auction)
+# spam_the_api(0, 110, find_completed_auction_BIN)

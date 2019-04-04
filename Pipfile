@@ -23,6 +23,7 @@ nltk = "*"
 keyring = "*"
 boto3 = "*"
 awscli = "*"
+pymongo = "*"
 
 [requires]
 python_version = "3.7"
