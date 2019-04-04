@@ -101,30 +101,49 @@ def get_specs(ITEM_ID):
 # ### Persisting some Data for Analysis
 
 # Just write first page of listing results to .json files:
-def persist_page_to_json(PAGE):
-    '''Saves a page of JSON responses to one json per sale / item'''
-    for i in range(len(PAGE)):
-        with open("data/listings/%s_listing.json" % (PAGE[i]['itemId'][0]), 'w') as f:  # writing JSON object
-            json.dump(PAGE[i], f)
+# def persist_page_to_json(PAGE):
+#     '''Saves a page of JSON responses to one json per sale / item'''
+#     for i in range(len(PAGE)):
+#         with open("data/listings/%s_listing.json" % (PAGE[i]['itemId'][0]), 'w') as f:  # writing JSON object
+#             json.dump(PAGE[i], f)
 
-# Now write one page of details to a JSON:
-def persist_spec_to_json(spec):
-    '''Writes one page of Axe Specs to one json'''
-    try:
-        with open("data/specs/%s_specs.json" % (spec['ItemID']), 'w') as f:  # writing JSON object
-            json.dump(spec, f)
-    except TypeError:
-        pass
-    pass
+# # Now write one page of details to a JSON:
+# def persist_spec_to_json(spec):
+#     '''Writes one page of Axe Specs to one json'''
+#     try:
+#         with open("data/specs/%s_specs.json" % (spec['ItemID']), 'w') as f:  # writing JSON object
+#             json.dump(spec, f)
+#     except TypeError:
+#         pass
+#     pass
 
 
 def page_of_listings_to_mongo(page):
     listings = db.listings
+    # import pdb;pdb.set_trace()
+
+    if listings.count_documents({}) == 0:
+        listings.create_index([('itemId', pymongo.ASCENDING)], unique=True)
+
+    i = 0
     for listing in page:
         try:
             listings.insert_one(listing)
         except pymongo.errors.DuplicateKeyError:
+            i += 1
             continue
+    print(f'Omitted {i} dupe items')
+    pass
+
+def item_spec_to_mongo(spec):
+    '''Writes one page of Axe Specs to mongodb'''
+    specs = db.specs
+    import pdb;pdb.set_trace()
+    try:
+        specs.insert_one(spec)
+    except pymongo.errors.DuplicateKeyError:
+        print('Skip duplicate')
+        pass
     pass
 
 def spam_the_api_mongo(start_page, stop_page, fetch_function):
@@ -135,8 +154,16 @@ def spam_the_api_mongo(start_page, stop_page, fetch_function):
     for i in range(start_page+1, stop_page+1):
         page = fetch_function(i)
         if page != None:
-            # import pdb; pdb.set_trace()
             page_of_listings_to_mongo(page)
+            for response_item in page:
+                # import pdb; pdb.set_trace()
+                if response_item['itemId'][0] not in [i['ItemID'] for i in db.specs.find()]:
+                    j += 1
+                    print(f'Get spec for page {i} item {k}')
+                    item_spec_to_mongo(get_specs(response_item['itemId'][0]))
+                else: print(f'Already have spec for page {i} item {k}')
+    print(f'\nChecked {k} items')
+    print(f'\nGot {j} new items')    
     pass
 
 # Okay, careful, this is where we start to hammer the eBay API a little bit.
