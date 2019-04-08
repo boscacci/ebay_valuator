@@ -143,5 +143,5 @@ def spam_the_api_mongo(start_page, stop_page, fetch_function):
     return 0
 
 # Again, you only get 5k API calls per day.
-# spam_the_api(0,110, find_completed_auction)
-# spam_the_api(0, 110, find_completed_auction_BIN)
+spam_the_api_mongo(0,110, find_completed_auction)
+spam_the_api_mongo(0, 110, find_completed_auction_BIN)
