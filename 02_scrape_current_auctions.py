@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 from key import API_KEY
 
 stars = '**************'
@@ -30,14 +24,10 @@ from scipy.stats import boxcox
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 sys.path.insert(0, 'objects')
+from Shade_Sale_Memory import Shade_Sale_Memory
 sys.path.insert(0, 'pickles')
 
-
-# In[2]:
-
-
 # Trawl for Prospective Deals
-
 address = input("Enter recipient email address: ")
 hours_ahead = int(input("Enter how many hours ahead you want to scrape for: "))
 
@@ -54,10 +44,6 @@ ct = datetime.utcnow()
 now = datetime.now()
 
 endtime_datetime = now + timedelta(hours=hours_ahead)
-
-
-# In[4]:
-
 
 end_time = f'{ct.year}-'
 
@@ -86,10 +72,6 @@ end_time += f'{ct.second}.'
 if len(str(ct.microsecond)) < 2:    
     end_time += '0'
 end_time += str(ct.microsecond)[:3] + 'Z'
-
-
-# In[5]:
-
 
 ITEM_FILTER_0 = f'itemFilter(0).name=Condition&itemFilter(0).value={USED}' # Only used items
 ITEM_FILTER_1 = f'itemFilter(1).name=HideDuplicateItems&itemFilter(1).value=true' # No duplicate listings
@@ -135,10 +117,6 @@ def get_specs(ITEM_ID):
     except KeyError:
         pass
 
-
-# In[6]:
-
-
 def trawl_for_items(start_page, stop_page, fetch_function):#, keywords):
     '''Spams the eBay API for pages of data'''
     j = 0
@@ -167,7 +145,6 @@ def trawl_for_items(start_page, stop_page, fetch_function):#, keywords):
 
 prospects = []
 
-
 print(stars)
 print('Trawling for goodies on the online:')
 
@@ -175,36 +152,31 @@ print('Trawling for goodies on the online:')
 # URL Formatting can be found here: https://www.freeformatter.com/url-encoder.html
 prospects.extend(trawl_for_items(0,3,find_current_auctions))#,'american+-%28squier%2Csquire%2Cepiphone%2Cepi%29'))
 
-
-# In[7]:
-
-
 print(stars)
 print('De-Serializing what we got from eBay:')
 
-from Shade_Sale_memory import Shade_Sale_Memory
-
+# specs = db.specs
 items = []
 for prospect in prospects:
     if prospect.get('specs'):
         try:
             this_item = Shade_Sale_Memory(prospect['listing'],prospect['specs'])
-            if "LOT OF" not in this_item.title.upper():
-                if this_item.end_time > endtime_datetime or this_item.end_time < now:
-                    print('invalid time')
-                    continue
-                else: items.append(this_item)
-            else:
-                print('this is a lot'); continue
+            if "BAG" not in this_item.title.upper():
+                if "LOT OF" not in this_item.title.upper():
+                    if this_item.end_time > endtime_datetime or this_item.end_time < now:
+                        print('invalid time')
+                        continue
+                    else: items.append(this_item)
+                else:
+                    print('this is a lot'); continue
+            else: 
+                print('this is a bag'); continue
         except ValueError:
             print("val_error")
             pass
     else:
         print("no specs")
         pass
-
-
-# In[10]:
 
 
 print(stars)
@@ -273,10 +245,6 @@ X_dummies = pd.concat([title_lengths,
 
 X_nontext = pd.get_dummies(X_dummies, drop_first=True)
 
-
-# In[11]:
-
-
 print(stars)
 print('Text Processing:')
 
@@ -330,9 +298,6 @@ processed_text = pd.Series(list(map(process_doc, raw_corpus)),
                            name = 'text')
 
 
-# In[12]:
-
-
 print(stars)
 print('Importing saved vectorizer:')
 
@@ -340,10 +305,6 @@ print('Importing saved vectorizer:')
 infile = open('pickles/saved_vectorizer','rb')
 vectorizer = pickle.load(infile)
 infile.close()
-
-
-# In[13]:
-
 
 print(stars)
 print('TF-IDF Transform:')
@@ -356,9 +317,6 @@ X_prune = pd.concat([X_nontext, tfidf_df], axis=1)
 infile = open('pickles/bonus_columns','rb')
 bonus_columns = pickle.load(infile)
 infile.close()
-
-
-# In[14]:
 
 
 fillers = []
@@ -374,9 +332,6 @@ fillers_df = pd.concat(fillers, axis=1)
 X = pd.concat([X_prune, fillers_df], axis=1)
 
 
-# In[15]:
-
-
 print(stars)
 print('Fetching the fitted scaler:')
 
@@ -385,9 +340,6 @@ scaler = pickle.load(infile)
 infile.close()
 
 X_ready_scaled = pd.DataFrame(scaler.transform(X))
-
-
-# In[16]:
 
 
 print(stars)
@@ -406,9 +358,6 @@ y_preds = tpot.predict(X_ready_scaled)
 
 bxcx_lam = 0
 y_preds_inv = inv_boxcox(y_preds, bxcx_lam)
-
-
-# In[58]:
 
 
 bids = []
@@ -434,10 +383,6 @@ hv_10 = highest_value.iloc[:10,:]
 
 most_underrated = predicted_df[predicted_df.Price < predicted_df.Estimate].sort_values('Ratio', ascending=False)
 m_u = most_underrated.iloc[:10,:]
-
-
-# In[60]:
-
 
 print(stars)
 print('Formatting an email:')
@@ -474,10 +419,3 @@ yag.send(
     contents=email)
 
 print(f"Summary sent to {address.split('@')[0]}. Happy hunting")
-
-
-# In[ ]:
-
-
-
-

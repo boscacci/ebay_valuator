@@ -2,53 +2,86 @@ stars = '**************'
 print(stars)
 print('Importing modules')
 
-import os, operator, itertools, pickle, sys, string
+# Python necessaries
+import operator, itertools, pickle, sys, string
 from copy import copy
 
+# Database
+import pymongo
+from pymongo import MongoClient
+client = MongoClient()
+db = client.ebay_val
+
+# Data Processing
 import numpy as np
 import pandas as pd
 
+# Visualization
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# ~Math~
 from scipy.stats import boxcox
 from scipy.special import inv_boxcox
 
+# Text Processing / Vectorization:
 import nltk
 from nltk.corpus import stopwords
 from nltk import word_tokenize, FreqDist
 from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# Sklearn Utilities:
 from sklearn.preprocessing import StandardScaler, FunctionTransformer
 from sklearn.feature_selection import f_regression, SelectPercentile
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, confusion_matrix
 from sklearn.pipeline import make_pipeline, make_union
 
+# Estimators:
 from sklearn.linear_model import LassoCV, RidgeCV
 from sklearn.svm import LinearSVR
 from sklearn.ensemble import RandomForestRegressor
 from tpot.builtins import StackingEstimator
-import xgboost
+# import xgboost
+
+sys.path.insert(0, 'objects')
+from Shade_Sale_Mongo import Shade_Sale_Mongo
+
+sys.path.insert(0, 'pickles')
+# sys.path.insert(0, 'data')
 
 np.random.seed(0)
 
-sys.path.insert(0, 'objects')
-sys.path.insert(0, 'data')
-sys.path.insert(0, 'pickles')
+# Warning suppression:
+import warnings
+warnings.filterwarnings("ignore")
 
-from Shade_Sale import Shade_Sale
+##################################################
 
 print(stars)
 print('Importing JSON Guitars')
 
-file_names = [name for name in os.listdir('data/specs/') if not name.startswith('.')] # Ignores hidden files on mac
+# Unnecessary with mongo
+# file_names = [name for name in os.listdir('data/specs/') if not name.startswith('.')] # Ignores hidden files on mac
 
+# JSON deserialization version:
+# items = []
+# for filename in file_names:
+#     try:
+#         this_item = Shade_Sale('data/listings', 'data/specs', filename)
+#         if "LOT" not in this_item.title.upper() and this_item.country_seller == 'US':# and this_item.price < 500:# and this_item.price > 50:
+#             items.append(this_item)
+#     except ValueError:
+#         print('valerror')
+#         pass
+
+# MongoDB Version:
+specs = db.specs
 items = []
-for filename in file_names:
+for spec in specs.find({}):
     try:
-        this_item = Shade_Sale('data/listings', 'data/specs', filename)
+        this_item = Shade_Sale_Mongo(spec, spec['ItemID'])
         if "LOT" not in this_item.title.upper() and this_item.country_seller == 'US':# and this_item.price < 500:# and this_item.price > 50:
             items.append(this_item)
     except ValueError:
@@ -65,7 +98,7 @@ plt.figure(figsize = (18,6))
 plt.hist(prices, bins=100)
 plt.ylabel('Frequency')
 plt.xlabel('Item Price in USD')
-plt.show()
+# plt.show()
 
 
 # In[95]:
@@ -309,13 +342,13 @@ print(f'Lasso Test error is a {round((((baseline_error - test_error) / baseline_
 
 plt.figure(figsize=(8,8))
 plt.scatter(y_test_inv, y_test_preds_inv, s=2)
-plt.show()
+# plt.show()
 
 
 coef = pd.DataFrame(data = lasso_model.coef_, index=X_train_scaled.columns)
 model_coef = coef.sort_values(by=0).T
 model_coef.plot(kind='bar', title='Lasso Coefficients', legend=False, figsize=(16,5))
-plt.show()
+# plt.show()
 
 
 print(stars)
@@ -335,7 +368,7 @@ high_actual = y_test_inv > price_thresh
 high_preds = y_test_preds_inv > price_thresh
 plt.figure(figsize=(5,5))
 cnf_matrix = confusion_matrix(high_actual, high_preds)
-plt.imshow(cnf_matrix,  cmap=plt.cm.Blues) #Create the basic matrix.
+# plt.imshow(cnf_matrix,  cmap=plt.cm.Blues) #Create the basic matrix.
 
 #Add title and Axis Labels
 plt.title('Lasso Confusion Matrix')
@@ -356,7 +389,7 @@ for i, j in itertools.product(range(cnf_matrix.shape[0]), range(cnf_matrix.shape
                  horizontalalignment="center",
                  color="white" if cnf_matrix[i, j] > thresh else "black")
 
-plt.show()
+# plt.show()
 
 
 ## Fitting a TPOT Auto-ML Pipeline
@@ -426,7 +459,7 @@ print(f'TPOT Test error is a {round((((baseline_error - test_error_tpot) / basel
 
 plt.figure(figsize=(8,8))
 plt.scatter(y_test_inv, y_test_preds_inv_tpot, s=2)
-plt.show()
+# plt.show()
 
 
 
@@ -435,7 +468,7 @@ price_thresh = 100
 high_preds_tpot = y_test_preds_inv_tpot > price_thresh
 plt.figure(figsize=(5,5))
 cnf_matrix_tpot = confusion_matrix(high_actual, high_preds_tpot)
-plt.imshow(cnf_matrix_tpot,  cmap=plt.cm.Blues) #Create the basic matrix.
+# plt.imshow(cnf_matrix_tpot,  cmap=plt.cm.Blues) #Create the basic matrix.
 
 #Add title and Axis Labels
 plt.title('TPOT Confusion Matrix')
@@ -456,7 +489,7 @@ for i, j in itertools.product(range(cnf_matrix_tpot.shape[0]), range(cnf_matrix_
                  horizontalalignment="center",
                  color="white" if cnf_matrix_tpot[i, j] > thresh else "black")
 
-plt.show()
+# plt.show()
 
 print(f'TPOT model only identifies {round(100 * cnf_matrix_tpot[1][1] / (cnf_matrix_tpot[1][0] + cnf_matrix_tpot[1][1]), 2)}% of the guitars that will sell above ${price_thresh}.')
 
