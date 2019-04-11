@@ -1,9 +1,12 @@
-import json, requests
+import json, os, requests
 
 import pymongo
 from pymongo import MongoClient
 client = MongoClient()
 db = client.ebay_val
+
+specs = db.specs
+listings = db.listings
 
 from key import API_KEY
 API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
@@ -95,9 +98,11 @@ def get_specs(ITEM_ID):
         pass
 
 def page_of_listings_to_mongo(page):
-    listings = db.listings
 
     if listings.count_documents({}) == 0:
+        db.create_collection('listings',
+                            capped=True,
+                            size=3575560000)
         listings.create_index([('itemId', pymongo.ASCENDING)], unique=True)
 
     i = 0
@@ -112,8 +117,11 @@ def page_of_listings_to_mongo(page):
 
 def item_spec_to_mongo(spec):
     '''Writes one page of Axe Specs to mongodb'''
-    specs = db.specs
+    
     if specs.count_documents({}) == 0:
+        db.create_collection('specs',
+                            capped=True,
+                            size=3575560000)
         specs.create_index([('ItemID', pymongo.ASCENDING)], unique=True)
     try:
         specs.insert_one(spec)

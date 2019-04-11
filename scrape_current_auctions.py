@@ -28,7 +28,6 @@ from Shade_Sale_Memory import Shade_Sale_Memory
 sys.path.insert(0, 'pickles')
 
 # Trawl for Prospective Deals
-address = input("Enter recipient email address: ")
 hours_ahead = int(input("Enter how many hours ahead you want to scrape for: "))
 
 API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
@@ -163,8 +162,11 @@ for prospect in prospects:
             this_item = Shade_Sale_Memory(prospect['listing'],prospect['specs'])
             if "BAG" not in this_item.title.upper():
                 if "LOT OF" not in this_item.title.upper():
-                    if this_item.end_time > endtime_datetime or this_item.end_time < now:
-                        print('invalid time')
+                    if this_item.end_time > endtime_datetime:
+                        print('auction not ending soon enough')
+                        continue
+                    if this_item.end_time < now:
+                        print('this auction ended')
                         continue
                     else: items.append(this_item)
                 else:
@@ -178,6 +180,7 @@ for prospect in prospects:
         print("no specs")
         pass
 
+# import pdb; pdb.set_trace()
 
 print(stars)
 print('More organizing data:')
@@ -384,38 +387,3 @@ hv_10 = highest_value.iloc[:10,:]
 most_underrated = predicted_df[predicted_df.Price < predicted_df.Estimate].sort_values('Ratio', ascending=False)
 m_u = most_underrated.iloc[:10,:]
 
-print(stars)
-print('Formatting an email:')
-
-email = "<h3>5 Most Undervalued:</h3>\n"
-
-email += "*******************************\n"
-
-for i in range(5):
-    email += f"<a href = {m_u['Link'].values[i]}>"
-    email += f"\n{m_u['Title'].values[i]}\n\n:"
-    email += f"<img src = {m_u['Pic'].values[i]}></img></a>\n"
-    email += f"\nCurrent Price: ${m_u['Price'].values[i]}"
-    email += f"\nBids: {m_u['Bids'].values[i]}"
-    email += f"\nEnding in: {m_u['Hours_til_close'].values[i]} Hours\n\n"
-    email += "*******************************\n"
-    
-email += '\n<h3>5 Highest Potential Value:</h3>\n'
-email += "*******************************\n"
-    
-for i in range(5):
-    email += f"<a href = {hv_10['Link'].values[i]}>"
-    email += f"\n{hv_10['Title'].values[i]}\n\n"
-    email += f"<img src = {hv_10.Pic.values[i]}></img></a>\n"
-    email += f"\nCurrent Price: ${hv_10['Price'].values[i]}"
-    email += f"\nBids: {hv_10['Bids'].values[i]}"
-    email += f"\nEnding in: {hv_10['Hours_til_close'].values[i]} Hours\n\n"
-    email += "*******************************\n"
-
-yag = yagmail.SMTP("gu1tarb1trag3@gmail.com")
-yag.send(
-    to=address,
-    subject=f"eBay TrawlBot - Auctions Ending Within {hours_ahead} Hour(s)",
-    contents=email)
-
-print(f"Summary sent to {address.split('@')[0]}. Happy hunting")

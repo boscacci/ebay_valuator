@@ -1,3 +1,4 @@
+
 stars = '**************'
 print(stars)
 print('Importing modules')
@@ -17,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 # Visualization
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import seaborn as sns
 
 # ~Math~
@@ -60,7 +61,7 @@ warnings.filterwarnings("ignore")
 ##################################################
 
 print(stars)
-print('Importing JSON Guitars')
+print('Importing Data:')
 
 # Unnecessary with mongo
 # file_names = [name for name in os.listdir('data/specs/') if not name.startswith('.')] # Ignores hidden files on mac
@@ -94,11 +95,11 @@ orig_prices = pd.Series([item.price for item in items], name = 'prices')
 
 bxcx_lam = 0
 prices = pd.Series(boxcox([item.price for item in items], lmbda=bxcx_lam), name = 'prices')
-plt.figure(figsize = (18,6))
-plt.hist(prices, bins=100)
-plt.ylabel('Frequency')
-plt.xlabel('Item Price in USD')
-# plt.show()
+# #plt.figure(figsize = (18,6))
+# #plt.hist(prices, bins=100)
+#plt.ylabel('Frequency')
+#plt.xlabel('Item Price in USD')
+# #plt.show()
 
 
 # In[95]:
@@ -305,10 +306,6 @@ outfile = open(filename, 'wb')
 pickle.dump(list(X_train_scaled.columns), outfile)
 outfile.close()
 
-
-X_train_scaled.shape
-
-
 print(stars)
 print('Training a Lasso Regressor...')
 
@@ -340,15 +337,14 @@ print(f'Lasso Train error is a {round((((baseline_error - train_error) / baselin
 
 print(f'Lasso Test error is a {round((((baseline_error - test_error) / baseline_error) * 100),2)}% improvement over guessing the mean.')
 
-plt.figure(figsize=(8,8))
-plt.scatter(y_test_inv, y_test_preds_inv, s=2)
-# plt.show()
-
+# #plt.figure(figsize=(8,8))
+#plt.scatter(y_test_inv, y_test_preds_inv, s=2)
+# #plt.show()
 
 coef = pd.DataFrame(data = lasso_model.coef_, index=X_train_scaled.columns)
 model_coef = coef.sort_values(by=0).T
 model_coef.plot(kind='bar', title='Lasso Coefficients', legend=False, figsize=(16,5))
-# plt.show()
+# #plt.show()
 
 
 print(stars)
@@ -366,30 +362,30 @@ price_thresh = 50
 high_actual = y_test_inv > price_thresh
 
 high_preds = y_test_preds_inv > price_thresh
-plt.figure(figsize=(5,5))
+# #plt.figure(figsize=(5,5))
 cnf_matrix = confusion_matrix(high_actual, high_preds)
-# plt.imshow(cnf_matrix,  cmap=plt.cm.Blues) #Create the basic matrix.
+# #plt.imshow(cnf_matrix,  cmap=#plt.cm.Blues) #Create the basic matrix.
 
 #Add title and Axis Labels
-plt.title('Lasso Confusion Matrix')
-plt.ylabel('True label')
-plt.xlabel('Predicted label')
+#plt.title('Lasso Confusion Matrix')
+#plt.ylabel('True label')
+#plt.xlabel('Predicted label')
 
 #Add appropriate Axis Scales
 class_names = ['Under', 'Over'] #Get class labels to add to matrix
 tick_marks = np.arange(len(class_names))
-plt.xticks(tick_marks, class_names, rotation=45)
-plt.yticks(tick_marks, class_names)
+#plt.xticks(tick_marks, class_names, rotation=45)
+#plt.yticks(tick_marks, class_names)
 
 #Add Labels to Each Cell
 thresh = cnf_matrix.max() / 2. #Used for text coloring below
 #Here we iterate through the confusion matrix and append labels to our visualization.
-for i, j in itertools.product(range(cnf_matrix.shape[0]), range(cnf_matrix.shape[1])):
-        plt.text(j, i, cnf_matrix[i, j],
-                 horizontalalignment="center",
-                 color="white" if cnf_matrix[i, j] > thresh else "black")
+# for i, j in itertools.product(range(cnf_matrix.shape[0]), range(cnf_matrix.shape[1])):
+        #plt.text(j, i, cnf_matrix[i, j],
+                 # horizontalalignment="center",
+                 # color="white" if cnf_matrix[i, j] > thresh else "black")
 
-# plt.show()
+# #plt.show()
 
 
 ## Fitting a TPOT Auto-ML Pipeline
@@ -457,39 +453,39 @@ print(f'TPOT Train error is a {round((((baseline_error - train_error_tpot) / bas
 
 print(f'TPOT Test error is a {round((((baseline_error - test_error_tpot) / baseline_error) * 100),2)}% improvement over guessing the mean.')
 
-plt.figure(figsize=(8,8))
-plt.scatter(y_test_inv, y_test_preds_inv_tpot, s=2)
-# plt.show()
+# #plt.figure(figsize=(8,8))
+#plt.scatter(y_test_inv, y_test_preds_inv_tpot, s=2)
+# #plt.show()
 
 
 
 price_thresh = 100
 
 high_preds_tpot = y_test_preds_inv_tpot > price_thresh
-plt.figure(figsize=(5,5))
+# #plt.figure(figsize=(5,5))
 cnf_matrix_tpot = confusion_matrix(high_actual, high_preds_tpot)
-# plt.imshow(cnf_matrix_tpot,  cmap=plt.cm.Blues) #Create the basic matrix.
+# #plt.imshow(cnf_matrix_tpot,  cmap=#plt.cm.Blues) #Create the basic matrix.
 
 #Add title and Axis Labels
-plt.title('TPOT Confusion Matrix')
-plt.ylabel('True label')
-plt.xlabel('Predicted label')
+#plt.title('TPOT Confusion Matrix')
+#plt.ylabel('True label')
+#plt.xlabel('Predicted label')
 
 #Add appropriate Axis Scales
 class_names = ['Under', 'Over'] #Get class labels to add to matrix
 tick_marks = np.arange(len(class_names))
-plt.xticks(tick_marks, class_names, rotation=45)
-plt.yticks(tick_marks, class_names)
+#plt.xticks(tick_marks, class_names, rotation=45)
+#plt.yticks(tick_marks, class_names)
 
 #Add Labels to Each Cell
 thresh = cnf_matrix_tpot.max() / 2. #Used for text coloring below
 #Here we iterate through the confusion matrix and append labels to our visualization.
-for i, j in itertools.product(range(cnf_matrix_tpot.shape[0]), range(cnf_matrix_tpot.shape[1])):
-        plt.text(j, i, cnf_matrix_tpot[i, j],
-                 horizontalalignment="center",
-                 color="white" if cnf_matrix_tpot[i, j] > thresh else "black")
+# for i, j in itertools.product(range(cnf_matrix_tpot.shape[0]), range(cnf_matrix_tpot.shape[1])):
+        #plt.text(j, i, cnf_matrix_tpot[i, j],
+                 # horizontalalignment="center",
+                 # color="white" if cnf_matrix_tpot[i, j] > thresh else "black")
 
-# plt.show()
+# #plt.show()
 
 print(f'TPOT model only identifies {round(100 * cnf_matrix_tpot[1][1] / (cnf_matrix_tpot[1][0] + cnf_matrix_tpot[1][1]), 2)}% of the guitars that will sell above ${price_thresh}.')
 
