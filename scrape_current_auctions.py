@@ -28,7 +28,7 @@ from Shade_Sale_Memory import Shade_Sale_Memory
 sys.path.insert(0, 'pickles')
 
 # Trawl for Prospective Deals
-hours_ahead = int(input("Enter how many hours ahead you want to scrape for: "))
+hours_ahead = 6 #int(input("Enter how many hours ahead you want to scrape for: "))
 
 API_KEY = API_KEY # Enter your API Key/"App ID" Here. Mine was 40 chars long.
 
@@ -104,7 +104,7 @@ def find_current_auctions(PAGE):#, keywords):
 
 def get_specs(ITEM_ID):
     '''Return the specifics of a single eBay auction. String input.'''
-    r = requests.get('http://open.api.ebay.com/shopping?'
+    res = requests.get('http://open.api.ebay.com/shopping?'
                     f'callname=GetSingleItem&'
                     f'responseencoding=JSON&'
                     f'appid={API_KEY}&'
@@ -112,7 +112,7 @@ def get_specs(ITEM_ID):
                     f'ItemID={ITEM_ID}&'
                     f'IncludeSelector=Details,ItemSpecifics,TextDescription')
     try:
-        return r.json()['Item']
+        return res.json()['Item']
     except KeyError:
         pass
 
@@ -179,8 +179,6 @@ for prospect in prospects:
     else:
         print("no specs")
         pass
-
-# import pdb; pdb.set_trace()
 
 print(stars)
 print('More organizing data:')

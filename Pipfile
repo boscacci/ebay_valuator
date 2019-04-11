@@ -24,6 +24,7 @@ keyring = "*"
 boto3 = "*"
 awscli = "*"
 pymongo = "*"
+flask = "*"
 
 [requires]
 python_version = "3.7"
